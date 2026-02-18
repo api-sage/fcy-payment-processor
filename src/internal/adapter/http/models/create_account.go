@@ -49,3 +49,15 @@ type CreateAccountResponse struct {
 	CreatedAt        string `json:"createdAt"`
 	UpdatedAt        string `json:"updatedAt"`
 }
+
+type GetAccountResponse struct {
+	ID               string `json:"id"`
+	CustomerID       string `json:"customerId"`
+	AccountNumber    string `json:"accountNumber"`
+	Currency         string `json:"currency"`
+	AvailableBalance string `json:"availableBalance"`
+	LedgerBalance    string `json:"ledgerBalance"`
+	Status           string `json:"status"`
+	CreatedAt        string `json:"createdAt"`
+	UpdatedAt        string `json:"updatedAt"`
+}
