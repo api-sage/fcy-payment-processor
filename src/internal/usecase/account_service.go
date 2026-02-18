@@ -12,11 +12,21 @@ import (
 )
 
 type AccountService struct {
-	accountRepo domain.AccountRepository
+	accountRepo         domain.AccountRepository
+	participantBankRepo domain.ParticipantBankRepository
+	greyBankCode        string
 }
 
-func NewAccountService(accountRepo domain.AccountRepository) *AccountService {
-	return &AccountService{accountRepo: accountRepo}
+func NewAccountService(
+	accountRepo domain.AccountRepository,
+	participantBankRepo domain.ParticipantBankRepository,
+	greyBankCode string,
+) *AccountService {
+	return &AccountService{
+		accountRepo:         accountRepo,
+		participantBankRepo: participantBankRepo,
+		greyBankCode:        strings.TrimSpace(greyBankCode),
+	}
 }
 
 func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAccountRequest) (models.Response[models.CreateAccountResponse], error) {
@@ -58,13 +68,48 @@ func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAcc
 	return models.SuccessResponse("account created successfully", response), nil
 }
 
-func (s *AccountService) GetAccount(ctx context.Context, accountNumber string) (models.Response[models.GetAccountResponse], error) {
+func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, bankCode string) (models.Response[models.GetAccountResponse], error) {
 	accountNumber = strings.TrimSpace(accountNumber)
+	bankCode = strings.TrimSpace(bankCode)
+
 	if accountNumber == "" {
 		return models.ErrorResponse[models.GetAccountResponse]("validation failed", "accountNumber is required"), fmt.Errorf("accountNumber is required")
 	}
 	if !isTenDigitAccountNumber(accountNumber) {
 		return models.ErrorResponse[models.GetAccountResponse]("validation failed", "accountNumber must be exactly 10 digits"), fmt.Errorf("accountNumber must be exactly 10 digits")
+	}
+	if bankCode == "" {
+		return models.ErrorResponse[models.GetAccountResponse]("validation failed", "bankCode is required"), fmt.Errorf("bankCode is required")
+	}
+	if !isSixDigitBankCode(bankCode) {
+		return models.ErrorResponse[models.GetAccountResponse]("validation failed", "bankCode must be exactly 6 digits"), fmt.Errorf("bankCode must be exactly 6 digits")
+	}
+
+	if bankCode != s.greyBankCode {
+		banks, err := s.participantBankRepo.GetAll(ctx)
+		if err != nil {
+			return models.ErrorResponse[models.GetAccountResponse]("failed to get account", err.Error()), err
+		}
+
+		var mappedBankName string
+		for _, bank := range banks {
+			if strings.TrimSpace(bank.BankCode) == bankCode {
+				mappedBankName = strings.TrimSpace(bank.BankName)
+				break
+			}
+		}
+		if mappedBankName == "" {
+			return models.ErrorResponse[models.GetAccountResponse]("validation failed", "bankCode is not supported"), fmt.Errorf("bankCode is not supported")
+		}
+
+		response := models.GetAccountResponse{
+			AccountName:   "John III Party",
+			AccountNumber: accountNumber,
+			BankCode:      bankCode,
+			BankName:      mappedBankName,
+		}
+
+		return models.SuccessResponse("external account fetched successfully", response), nil
 	}
 
 	account, err := s.accountRepo.GetByAccountNumber(ctx, accountNumber)
@@ -75,7 +120,10 @@ func (s *AccountService) GetAccount(ctx context.Context, accountNumber string) (
 	response := models.GetAccountResponse{
 		ID:               account.ID,
 		CustomerID:       account.CustomerID,
+		AccountName:      account.CustomerID,
 		AccountNumber:    account.AccountNumber,
+		BankCode:         bankCode,
+		BankName:         "Grey",
 		Currency:         account.Currency,
 		AvailableBalance: account.AvailableBalance,
 		LedgerBalance:    account.LedgerBalance,
@@ -114,6 +162,20 @@ func isTenDigitAccountNumber(accountNumber string) bool {
 	}
 
 	for _, ch := range accountNumber {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isSixDigitBankCode(bankCode string) bool {
+	if len(bankCode) != 6 {
+		return false
+	}
+
+	for _, ch := range bankCode {
 		if ch < '0' || ch > '9' {
 			return false
 		}

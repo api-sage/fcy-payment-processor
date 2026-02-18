@@ -9,12 +9,14 @@ import (
 const defaultConnectionString = "Host=localhost;Port=5432;Database=payment_system_db;Username=postgres;Password=1&i355O8;Timeout=30;CommandTimeout=30"
 const defaultChannelID = "GreyApp"
 const defaultChannelKey = "GreyhoundKey001"
+const defaultGreyBankCode = "100100"
 
 type Config struct {
 	DatabaseDSN   string
 	MigrationsDir string
 	ChannelID     string
 	ChannelKey    string
+	GreyBankCode  string
 }
 
 func Load() (Config, error) {
@@ -33,11 +35,17 @@ func Load() (Config, error) {
 		channelKey = defaultChannelKey
 	}
 
+	greyBankCode := strings.TrimSpace(os.Getenv("GREY_BANK_CODE"))
+	if greyBankCode == "" {
+		greyBankCode = defaultGreyBankCode
+	}
+
 	return Config{
 		DatabaseDSN:   normalizeConnectionString(conn),
 		MigrationsDir: filepath.Join("src", "migrations"),
 		ChannelID:     channelID,
 		ChannelKey:    channelKey,
+		GreyBankCode:  greyBankCode,
 	}, nil
 }
 

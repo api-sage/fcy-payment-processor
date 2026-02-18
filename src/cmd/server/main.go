@@ -35,15 +35,16 @@ func main() {
 	}
 	defer db.Close()
 
+	participantBankRepo := memory.NewParticipantBankRepository()
+
 	accountRepo := postgres.NewAccountRepository(db)
-	accountService := usecase.NewAccountService(accountRepo)
+	accountService := usecase.NewAccountService(accountRepo, participantBankRepo, cfg.GreyBankCode)
 	accountController := controller.NewAccountController(accountService)
 
 	userRepo := postgres.NewUserRepository(db)
 	userService := usecase.NewUserService(userRepo)
 	userController := controller.NewUserController(userService)
 
-	participantBankRepo := memory.NewParticipantBankRepository()
 	participantBankService := usecase.NewParticipantBankService(participantBankRepo)
 	participantBankController := controller.NewParticipantBankController(participantBankService)
 

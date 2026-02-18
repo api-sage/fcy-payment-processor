@@ -53,7 +53,10 @@ type CreateAccountResponse struct {
 type GetAccountResponse struct {
 	ID               string `json:"id"`
 	CustomerID       string `json:"customerId"`
+	AccountName      string `json:"accountName,omitempty"`
 	AccountNumber    string `json:"accountNumber"`
+	BankCode         string `json:"bankCode"`
+	BankName         string `json:"bankName,omitempty"`
 	Currency         string `json:"currency"`
 	AvailableBalance string `json:"availableBalance"`
 	LedgerBalance    string `json:"ledgerBalance"`

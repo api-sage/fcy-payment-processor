@@ -102,6 +102,15 @@ const openAPI = `{
               "type": "string",
               "pattern": "^[0-9]{10}$"
             }
+          },
+          {
+            "name": "bankCode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{6}$"
+            }
           }
         ],
         "responses": {

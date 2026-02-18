@@ -10,7 +10,7 @@ import (
 
 type AccountService interface {
 	CreateAccount(ctx context.Context, req models.CreateAccountRequest) (models.Response[models.CreateAccountResponse], error)
-	GetAccount(ctx context.Context, accountNumber string) (models.Response[models.GetAccountResponse], error)
+	GetAccount(ctx context.Context, accountNumber string, bankCode string) (models.Response[models.GetAccountResponse], error)
 }
 
 type AccountController struct {
@@ -69,7 +69,8 @@ func (c *AccountController) getAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	accountNumber := r.URL.Query().Get("accountNumber")
-	response, err := c.service.GetAccount(r.Context(), accountNumber)
+	bankCode := r.URL.Query().Get("bankCode")
+	response, err := c.service.GetAccount(r.Context(), accountNumber, bankCode)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if response.Message == "validation failed" {
