@@ -7,10 +7,14 @@ import (
 )
 
 const defaultConnectionString = "Host=localhost;Port=5432;Database=payment_system_db;Username=postgres;Password=1&i355O8;Timeout=30;CommandTimeout=30"
+const defaultChannelID = "GreyApp"
+const defaultChannelKey = "GrehoundKey001"
 
 type Config struct {
 	DatabaseDSN   string
 	MigrationsDir string
+	ChannelID     string
+	ChannelKey    string
 }
 
 func Load() (Config, error) {
@@ -19,9 +23,21 @@ func Load() (Config, error) {
 		conn = defaultConnectionString
 	}
 
+	channelID := strings.TrimSpace(os.Getenv("CHANNEL_ID"))
+	if channelID == "" {
+		channelID = defaultChannelID
+	}
+
+	channelKey := strings.TrimSpace(os.Getenv("CHANNEL_KEY"))
+	if channelKey == "" {
+		channelKey = defaultChannelKey
+	}
+
 	return Config{
 		DatabaseDSN:   normalizeConnectionString(conn),
 		MigrationsDir: filepath.Join("src", "migrations"),
+		ChannelID:     channelID,
+		ChannelKey:    channelKey,
 	}, nil
 }
 
