@@ -1,0 +1,104 @@
+================================================================================
+ARCHITECTURE DESIGN: MULTI-CURRENCY PAYMENT SYSTEM (CLEAN ARCHITECTURE)
+================================================================================
+
+ccy-payment-processor/src/
+├── cmd/
+│   └── server/
+│       └── main.go            # Entry point: Wires up the App, DB, and Routes
+├── internal/
+│   ├── adapter/               # EXTERNAL INTERFACES (Implementation details)
+│   │   ├── http/
+│   │   │   ├── handler.go     # API Endpoints (Intra/Inter transfer, etc.)
+│   │   │   ├── middleware.go  # Channel Auth Logic (AppSettings check)
+│   │   │   └── router.go      # Route registration
+│   │   └── repository/
+│   │       └── postgres.go    # SQL Transactions (Suspense Account logic)
+│   ├── config/
+│   │   └── config.go          # AppSettings loader (Viper)
+│   ├── domain/                # THE CORE (Business Entities & Interfaces)
+│   │   ├── account.go         # Account structs
+│   │   ├── transfer.go        # Transfer structs + Status constants
+│   │   └── repository.go      # Interfaces (The "Ports")
+│   └── usecase/               # BUSINESS RULES (The "Brain")
+│       └── transfer_svc.go    # VAT calculation, FX logic, & orchestration
+├── migrations/                # DATABASE EVOLUTION
+│   ├── 001_init.up.sql        # Tables: Users, Transfers, TransientTransactions
+│   └── 001_init.down.sql
+├── appsettings.json           # Configuration (Charges, VAT, Channel Creds)
+├── docker-compose.yml         # Infrastructure Orchestration
+├── Dockerfile                 # Container Recipe
+├── go.mod                     # Dependency Management
+└── README.md                  # Project Documentation
+
+
+1. AUTHENTICATION & SECURITY
+----------------------------
+* Channel Validation: 
+    - Incoming requests checked against 'appsettings' (ChannelCredentials).
+    - Logic: IF (Request.SourceCredentials == AppSettings.Credentials) ALLOW ELSE DENY.
+* Transaction Authorization:
+    - TransactionPin required for every transfer request.
+
+2. SYSTEM ENTITIES (CORE MODELS)
+--------------------------------
+* Users: Auth and Profile data including customer Id.
+* Accounts: CustomerId, Account related data and available amount, account status, etc
+* Transfers: Main transaction log (ID, Status, PaymentRef, AuditPayload).
+* Rates: CCY record - FromCcy, ToCcy, SellRate, BuyRate, RateDate.
+* TransientAccountTransactions: Ledger for the Suspense Account movements.
+
+3. API ENDPOINTS
+----------------
+* POST /getAccount          -> { accountnumber }
+* GET  /getparticipantbanks -> returns List<Bank>
+* POST /validateaccount     -> { accountnumber, bankcode }
+* POST /getccyrates         -> { amount, fromCcy, toCcy }
+* GET  /getcharges          -> ?ccy=USD&amount=100
+* POST /intratransfer       -> (Internal Transfer Payload)
+* POST /intertransfers      -> (External Transfer Payload + bankcode)
+
+4. TRANSFER BUSINESS LOGIC (USE CASE)
+-------------------------------------
+A. Pre-Processing:
+   - Validate ChannelCode & TransactionPin.
+   - Validate Debit Account & Beneficiary (Account number/Bank code).
+   - Check Available Balance >= (Amount + Charges + VAT).
+     * Charges: Static (from AppSettings).
+     * VAT: 7.5% of Amount (in Sender's CCY).
+
+B. Persistence (State Management):
+   - Create Transfer record (Status: PENDING).
+   - Store full Request Body as a Serialized String in 'audit_payload' column.
+
+C. Fund Movement (Suspense Account Pattern):
+   - IF (DebitCCY == CreditCCY):
+     1. Debit Sender (Amount + Charges + VAT).
+     2. Credit Suspense Account (Amount).
+     3. Credit Beneficiary from Suspense Account.
+
+   - IF (DebitCCY != CreditCCY):
+     IF (isAmountInBeneficiaryCurrency == true):
+       1. Convert Target Amount -> Sender CCY.
+       2. Debit Sender (ConvertedAmount equivalence in their own account ccy + Charges + VAT).
+       3. Credit Beneficiary exact Target Amount via Suspense.
+     ELSE (isAmountInBeneficiaryCurrency == false):
+       1. Debit Sender (Amount + Charges + VAT).
+       2. Convert Amount -> Beneficiary CCY (convertedAmount).
+       3. Credit Beneficiary 'convertedAmount' via Suspense.
+
+D. Post-Processing:
+   - Generate unique PaymentReference.
+   - Update 'Transfers' table status to SUCCESS.
+   - Update 'TransientAccountTransactions' with the PaymentReference.
+
+5. CLEAN ARCHITECTURE STRUCTURE
+-------------------------------
+/internal
+  /domain       <- Entities (User, Transfer, Account) + Logic Interfaces
+  /usecase      <- TransferService (The logic above lives here)
+  /adapter
+    /http       <- API Handlers (Gin/Fiber) + Channel Auth Middleware
+    /repository <- Postgres Implementation (SQL Transactions)
+    /config     <- AppSettings/Environment Loader
+================================================================================
