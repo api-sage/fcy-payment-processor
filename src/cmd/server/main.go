@@ -38,7 +38,11 @@ func main() {
 	accountService := usecase.NewAccountService(accountRepo)
 	accountController := controller.NewAccountController(accountService)
 
-	mux := router.New(accountController, middleware.ChannelAuth(cfg.ChannelID, cfg.ChannelKey))
+	userRepo := postgres.NewUserRepository(db)
+	userService := usecase.NewUserService(userRepo)
+	userController := controller.NewUserController(userService)
+
+	mux := router.New(accountController, userController, middleware.ChannelAuth(cfg.ChannelID, cfg.ChannelKey))
 
 	port := os.Getenv("PORT")
 	if port == "" {
