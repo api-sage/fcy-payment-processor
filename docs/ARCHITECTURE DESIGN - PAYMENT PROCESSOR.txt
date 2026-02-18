@@ -2,34 +2,29 @@
 ARCHITECTURE DESIGN: MULTI-CURRENCY PAYMENT SYSTEM (CLEAN ARCHITECTURE)
 ================================================================================
 
-ccy-payment-processor/src/
-├── cmd/
-│   └── server/
-│       └── main.go            # Entry point: Wires up the App, DB, and Routes
-├── internal/
-│   ├── adapter/               # EXTERNAL INTERFACES (Implementation details)
-│   │   ├── http/
-│   │   │   ├── handler.go     # API Endpoints (Intra/Inter transfer, etc.)
-│   │   │   ├── middleware.go  # Channel Auth Logic (AppSettings check)
-│   │   │   └── router.go      # Route registration
-│   │   └── repository/
-│   │       └── postgres.go    # SQL Transactions (Suspense Account logic)
-│   ├── config/
-│   │   └── config.go          # AppSettings loader (Viper)
-│   ├── domain/                # THE CORE (Business Entities & Interfaces)
-│   │   ├── account.go         # Account structs
-│   │   ├── transfer.go        # Transfer structs + Status constants
-│   │   └── repository.go      # Interfaces (The "Ports")
-│   └── usecase/               # BUSINESS RULES (The "Brain")
-│       └── transfer_svc.go    # VAT calculation, FX logic, & orchestration
-├── migrations/                # DATABASE EVOLUTION
-│   ├── 001_init.up.sql        # Tables: Users, Transfers, TransientTransactions
-│   └── 001_init.down.sql
-├── appsettings.json           # Configuration (Charges, VAT, Channel Creds)
+ccy-payment-processor/
+├── .gitignore
+├── LICENSE
+├── README.md                  # Project documentation
 ├── docker-compose.yml         # Infrastructure Orchestration
 ├── Dockerfile                 # Container Recipe
 ├── go.mod                     # Dependency Management
-└── README.md                  # Project Documentation
+├── docs/                      # Arch docs and sequence flows
+│   ├── ARCHITECTURE DESIGN - PAYMENT PROCESSOR.txt
+│   └── PAYMENT PROCESSOR SYSTEM SEQUENCE FLOW.jpg
+└── src/                       # THE SOURCE ROOT
+    ├── cmd/
+    │   └── server/
+    │       └── main.go        # Entry point: Wires up the App
+    ├── internal/
+    │   ├── adapter/           # EXTERNAL INTERFACES
+    │   │   ├── http/          # Handlers & Middleware
+    │   │   └── repository/    # Postgres & SQL Logic
+    │   ├── config/            # AppSettings loader
+    │   ├── domain/            # CORE ENTITIES (Entities & Interfaces)
+    │   └── usecase/           # BUSINESS LOGIC (The Brain)
+    ├── migrations/            # SQL scripts for DB evolution
+    └── appsettings.json       # Config (Charges, VAT, Channel Creds)
 
 
 1. AUTHENTICATION & SECURITY
