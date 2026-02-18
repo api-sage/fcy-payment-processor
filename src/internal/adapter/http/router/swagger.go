@@ -107,7 +107,7 @@ const openAPI = `{
                   "idType",
                   "idNumber",
                   "kycLevel",
-                  "transactionPinHas"
+                  "transactionPin"
                 ],
                 "properties": {
                   "firstName": {"type": "string"},
@@ -118,7 +118,7 @@ const openAPI = `{
                   "idType": {"type": "string", "enum": ["Passport", "DL"]},
                   "idNumber": {"type": "string"},
                   "kycLevel": {"type": "integer", "minimum": 1},
-                  "transactionPinHas": {"type": "string"}
+                  "transactionPin": {"type": "string"}
                 }
               }
             }

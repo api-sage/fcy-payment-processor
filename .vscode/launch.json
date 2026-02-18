@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug API Server",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/src/cmd/server",
+      "cwd": "${workspaceFolder}",
+      "env": {
+         "PORT": "8080",
+         "CHANNEL_ID": "GreyApp",
+         "CHANNEL_KEY": "GreyhoundKey001",
+        "DATABASE_DSN": "Host=localhost;Port=5432;Database=payment_system_db;Username=postgres;Password=1&i355O8;Timeout=30;CommandTimeout=30"
+      }
+    }
+  ]
+}

@@ -50,7 +50,7 @@ RETURNING id, customer_id, first_name, middle_name, last_name, dob, phone_number
 		user.IDType,
 		user.IDNumber,
 		user.KYCLevel,
-		user.TransactionPinHas,
+		user.TransactionPinHash,
 	), &created); err != nil {
 		return domain.User{}, fmt.Errorf("create user: %w", err)
 	}
@@ -106,7 +106,7 @@ RETURNING id, customer_id, first_name, middle_name, last_name, dob, phone_number
 		user.IDType,
 		user.IDNumber,
 		user.KYCLevel,
-		user.TransactionPinHas,
+		user.TransactionPinHash,
 	), &updated); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.User{}, fmt.Errorf("user not found: %w", err)
@@ -129,7 +129,7 @@ func scanUser(row rowScanner, user *domain.User) error {
 		&user.IDType,
 		&user.IDNumber,
 		&user.KYCLevel,
-		&user.TransactionPinHas,
+		&user.TransactionPinHash,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)

@@ -8,7 +8,7 @@ import (
 
 const defaultConnectionString = "Host=localhost;Port=5432;Database=payment_system_db;Username=postgres;Password=1&i355O8;Timeout=30;CommandTimeout=30"
 const defaultChannelID = "GreyApp"
-const defaultChannelKey = "GrehoundKey001"
+const defaultChannelKey = "GreyhoundKey001"
 
 type Config struct {
 	DatabaseDSN   string

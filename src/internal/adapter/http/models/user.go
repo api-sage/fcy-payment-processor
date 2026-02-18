@@ -9,15 +9,15 @@ import (
 )
 
 type CreateUserRequest struct {
-	FirstName         string `json:"firstName"`
-	MiddleName        string `json:"middleName,omitempty"`
-	LastName          string `json:"lastName"`
-	DOB               string `json:"dob"`
-	PhoneNumber       string `json:"phoneNumber"`
-	IDType            string `json:"idType"`
-	IDNumber          string `json:"idNumber"`
-	KYCLevel          int    `json:"kycLevel"`
-	TransactionPinHas string `json:"transactionPinHas"`
+	FirstName      string `json:"firstName"`
+	MiddleName     string `json:"middleName,omitempty"`
+	LastName       string `json:"lastName"`
+	DOB            string `json:"dob"`
+	PhoneNumber    string `json:"phoneNumber"`
+	IDType         string `json:"idType"`
+	IDNumber       string `json:"idNumber"`
+	KYCLevel       int    `json:"kycLevel"`
+	TransactionPin string `json:"transactionPin"`
 }
 
 func (r CreateUserRequest) Validate() error {
@@ -49,8 +49,8 @@ func (r CreateUserRequest) Validate() error {
 	if r.KYCLevel <= 0 {
 		errs = append(errs, "kycLevel must be greater than zero")
 	}
-	if strings.TrimSpace(r.TransactionPinHas) == "" {
-		errs = append(errs, "transactionPinHas is required")
+	if strings.TrimSpace(r.TransactionPin) == "" {
+		errs = append(errs, "transactionPin is required")
 	}
 
 	if len(errs) > 0 {

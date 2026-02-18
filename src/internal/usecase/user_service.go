@@ -34,22 +34,22 @@ func (s *UserService) CreateUser(ctx context.Context, req models.CreateUserReque
 		middleName = &trimmed
 	}
 
-	hashedPin, err := hashTransactionPin(strings.TrimSpace(req.TransactionPinHas))
+	hashedPin, err := hashTransactionPin(strings.TrimSpace(req.TransactionPin))
 	if err != nil {
 		return models.ErrorResponse[models.CreateUserResponse]("failed to create user", "failed to hash transaction pin"), err
 	}
 
 	user := domain.User{
-		CustomerID:        generateCustomerID(),
-		FirstName:         strings.TrimSpace(req.FirstName),
-		MiddleName:        middleName,
-		LastName:          strings.TrimSpace(req.LastName),
-		DOB:               dob,
-		PhoneNumber:       strings.TrimSpace(req.PhoneNumber),
-		IDType:            domain.IDType(strings.TrimSpace(req.IDType)),
-		IDNumber:          strings.TrimSpace(req.IDNumber),
-		KYCLevel:          req.KYCLevel,
-		TransactionPinHas: hashedPin,
+		CustomerID:         generateCustomerID(),
+		FirstName:          strings.TrimSpace(req.FirstName),
+		MiddleName:         middleName,
+		LastName:           strings.TrimSpace(req.LastName),
+		DOB:                dob,
+		PhoneNumber:        strings.TrimSpace(req.PhoneNumber),
+		IDType:             domain.IDType(strings.TrimSpace(req.IDType)),
+		IDNumber:           strings.TrimSpace(req.IDNumber),
+		KYCLevel:           req.KYCLevel,
+		TransactionPinHash: hashedPin,
 	}
 
 	created, err := s.userRepo.Create(ctx, user)
@@ -88,7 +88,7 @@ func (s *UserService) GetUser(ctx context.Context, id string) (models.Response[m
 		IDType:            string(user.IDType),
 		IDNumber:          user.IDNumber,
 		KYCLevel:          user.KYCLevel,
-		TransactionPinHas: user.TransactionPinHas,
+		TransactionPinHas: user.TransactionPinHash,
 		CreatedAt:         user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:         user.UpdatedAt.Format(time.RFC3339),
 	}
