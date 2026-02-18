@@ -131,6 +131,38 @@ const openAPI = `{
           "500": {"description": "Server error"}
         }
       }
+    },
+    "/verify-pin": {
+      "post": {
+        "summary": "Verify user transaction pin",
+        "security": [
+          {
+            "ChannelID": [],
+            "ChannelKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customerId", "pin"],
+                "properties": {
+                  "customerId": {"type": "string"},
+                  "pin": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Pin verified"},
+          "400": {"description": "Validation error or invalid pin"},
+          "401": {"description": "Unauthorized"},
+          "500": {"description": "Server error"}
+        }
+      }
     }
   },
   "components": {
