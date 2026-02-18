@@ -19,14 +19,14 @@ func NewAccountService(accountRepo domain.AccountRepository) *AccountService {
 	return &AccountService{accountRepo: accountRepo}
 }
 
-func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAccountRequest) (domain.Account, error) {
+func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAccountRequest) (models.Response[models.CreateAccountResponse], error) {
 	if err := req.Validate(); err != nil {
-		return domain.Account{}, err
+		return models.ErrorResponse[models.CreateAccountResponse]("validation failed", err.Error()), err
 	}
 
 	balance, err := parseBalance(req.InitialDeposit)
 	if err != nil {
-		return domain.Account{}, err
+		return models.ErrorResponse[models.CreateAccountResponse]("validation failed", err.Error()), err
 	}
 
 	account := domain.Account{
@@ -40,10 +40,22 @@ func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAcc
 
 	created, err := s.accountRepo.Create(ctx, account)
 	if err != nil {
-		return domain.Account{}, err
+		return models.ErrorResponse[models.CreateAccountResponse]("failed to create account", err.Error()), err
 	}
 
-	return created, nil
+	response := models.CreateAccountResponse{
+		ID:               created.ID,
+		CustomerID:       created.CustomerID,
+		AccountNumber:    created.AccountNumber,
+		Currency:         created.Currency,
+		AvailableBalance: created.AvailableBalance,
+		LedgerBalance:    created.LedgerBalance,
+		Status:           string(created.Status),
+		CreatedAt:        created.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:        created.UpdatedAt.Format(time.RFC3339),
+	}
+
+	return models.SuccessResponse("account created successfully", response), nil
 }
 
 func parseBalance(raw string) (string, error) {
