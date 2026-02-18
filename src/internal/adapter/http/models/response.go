@@ -1,10 +1,9 @@
 package models
 
 type Response[T any] struct {
-	Success bool     `json:"success"`
-	Message string   `json:"message"`
-	Data    *T       `json:"data,omitempty"`
-	Errors  []string `json:"errors,omitempty"`
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Data    *T     `json:"data,omitempty"`
 }
 
 func SuccessResponse[T any](message string, data T) Response[T] {
@@ -19,6 +18,5 @@ func ErrorResponse[T any](message string, errors ...string) Response[T] {
 	return Response[T]{
 		Success: false,
 		Message: message,
-		Errors:  errors,
 	}
 }

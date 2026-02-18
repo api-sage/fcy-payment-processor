@@ -25,7 +25,7 @@ func (c *AccountController) RegisterRoutes(mux *http.ServeMux, authMiddleware fu
 	if authMiddleware != nil {
 		handler = authMiddleware(handler).ServeHTTP
 	}
-	mux.Handle("/accounts", http.HandlerFunc(handler))
+	mux.Handle("/create-account", http.HandlerFunc(handler))
 }
 
 func (c *AccountController) createAccount(w http.ResponseWriter, r *http.Request) {

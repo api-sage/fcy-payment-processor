@@ -107,7 +107,7 @@ const openAPI = `{
                   "idType",
                   "idNumber",
                   "kycLevel",
-                  "transactionPinHas"
+                  "transactionPin"
                 ],
                 "properties": {
                   "firstName": {"type": "string"},
@@ -118,7 +118,7 @@ const openAPI = `{
                   "idType": {"type": "string", "enum": ["Passport", "DL"]},
                   "idNumber": {"type": "string"},
                   "kycLevel": {"type": "integer", "minimum": 1},
-                  "transactionPinHas": {"type": "string"}
+                  "transactionPin": {"type": "string"}
                 }
               }
             }
@@ -127,6 +127,38 @@ const openAPI = `{
         "responses": {
           "201": {"description": "Created"},
           "400": {"description": "Validation error"},
+          "401": {"description": "Unauthorized"},
+          "500": {"description": "Server error"}
+        }
+      }
+    },
+    "/verify-pin": {
+      "post": {
+        "summary": "Verify user transaction pin",
+        "security": [
+          {
+            "ChannelID": [],
+            "ChannelKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customerId", "pin"],
+                "properties": {
+                  "customerId": {"type": "string"},
+                  "pin": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Pin verified"},
+          "400": {"description": "Validation error or invalid pin"},
           "401": {"description": "Unauthorized"},
           "500": {"description": "Server error"}
         }

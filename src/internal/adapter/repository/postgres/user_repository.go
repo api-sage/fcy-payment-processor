@@ -50,7 +50,7 @@ RETURNING id, customer_id, first_name, middle_name, last_name, dob, phone_number
 		user.IDType,
 		user.IDNumber,
 		user.KYCLevel,
-		user.TransactionPinHas,
+		user.TransactionPinHash,
 	), &created); err != nil {
 		return domain.User{}, fmt.Errorf("create user: %w", err)
 	}
@@ -106,7 +106,7 @@ RETURNING id, customer_id, first_name, middle_name, last_name, dob, phone_number
 		user.IDType,
 		user.IDNumber,
 		user.KYCLevel,
-		user.TransactionPinHas,
+		user.TransactionPinHash,
 	), &updated); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.User{}, fmt.Errorf("user not found: %w", err)
@@ -115,6 +115,23 @@ RETURNING id, customer_id, first_name, middle_name, last_name, dob, phone_number
 	}
 
 	return updated, nil
+}
+
+func (r *UserRepository) GetTransactionPinHashByCustomerID(ctx context.Context, customerID string) (string, error) {
+	const query = `
+SELECT transaction_pin_has
+FROM users
+WHERE customer_id = $1`
+
+	var transactionPinHash string
+	if err := r.db.QueryRowContext(ctx, query, customerID).Scan(&transactionPinHash); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", fmt.Errorf("user not found: %w", err)
+		}
+		return "", fmt.Errorf("get transaction pin hash by customer id: %w", err)
+	}
+
+	return transactionPinHash, nil
 }
 
 func scanUser(row rowScanner, user *domain.User) error {
@@ -129,7 +146,7 @@ func scanUser(row rowScanner, user *domain.User) error {
 		&user.IDType,
 		&user.IDNumber,
 		&user.KYCLevel,
-		&user.TransactionPinHas,
+		&user.TransactionPinHash,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)

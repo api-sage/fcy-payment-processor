@@ -8,6 +8,7 @@ import (
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
@@ -33,17 +34,22 @@ func (s *UserService) CreateUser(ctx context.Context, req models.CreateUserReque
 		middleName = &trimmed
 	}
 
+	hashedPin, err := hashTransactionPin(strings.TrimSpace(req.TransactionPin))
+	if err != nil {
+		return models.ErrorResponse[models.CreateUserResponse]("failed to create user", "failed to hash transaction pin"), err
+	}
+
 	user := domain.User{
-		CustomerID:        generateCustomerID(),
-		FirstName:         strings.TrimSpace(req.FirstName),
-		MiddleName:        middleName,
-		LastName:          strings.TrimSpace(req.LastName),
-		DOB:               dob,
-		PhoneNumber:       strings.TrimSpace(req.PhoneNumber),
-		IDType:            domain.IDType(strings.TrimSpace(req.IDType)),
-		IDNumber:          strings.TrimSpace(req.IDNumber),
-		KYCLevel:          req.KYCLevel,
-		TransactionPinHas: strings.TrimSpace(req.TransactionPinHas),
+		CustomerID:         generateCustomerID(),
+		FirstName:          strings.TrimSpace(req.FirstName),
+		MiddleName:         middleName,
+		LastName:           strings.TrimSpace(req.LastName),
+		DOB:                dob,
+		PhoneNumber:        strings.TrimSpace(req.PhoneNumber),
+		IDType:             domain.IDType(strings.TrimSpace(req.IDType)),
+		IDNumber:           strings.TrimSpace(req.IDNumber),
+		KYCLevel:           req.KYCLevel,
+		TransactionPinHash: hashedPin,
 	}
 
 	created, err := s.userRepo.Create(ctx, user)
@@ -82,7 +88,7 @@ func (s *UserService) GetUser(ctx context.Context, id string) (models.Response[m
 		IDType:            string(user.IDType),
 		IDNumber:          user.IDNumber,
 		KYCLevel:          user.KYCLevel,
-		TransactionPinHas: user.TransactionPinHas,
+		TransactionPinHas: user.TransactionPinHash,
 		CreatedAt:         user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:         user.UpdatedAt.Format(time.RFC3339),
 	}
@@ -90,6 +96,47 @@ func (s *UserService) GetUser(ctx context.Context, id string) (models.Response[m
 	return models.SuccessResponse("user fetched successfully", response), nil
 }
 
+func (s *UserService) VerifyUserPin(ctx context.Context, customerID string, pin string) (models.Response[models.VerifyUserPinResponse], error) {
+	customerID = strings.TrimSpace(customerID)
+	pin = strings.TrimSpace(pin)
+
+	if customerID == "" {
+		return models.ErrorResponse[models.VerifyUserPinResponse]("validation failed", "customerId is required"), fmt.Errorf("customerId is required")
+	}
+	if pin == "" {
+		return models.ErrorResponse[models.VerifyUserPinResponse]("validation failed", "pin is required"), fmt.Errorf("pin is required")
+	}
+
+	storedPinHash, err := s.userRepo.GetTransactionPinHashByCustomerID(ctx, customerID)
+	if err != nil {
+		return models.ErrorResponse[models.VerifyUserPinResponse]("failed to verify pin", err.Error()), err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(storedPinHash), []byte(pin)); err != nil {
+		if err == bcrypt.ErrMismatchedHashAndPassword {
+			return models.ErrorResponse[models.VerifyUserPinResponse]("invalid pin", "provided pin does not match"), fmt.Errorf("invalid pin")
+		}
+		wrappedErr := fmt.Errorf("verify user pin: %w", err)
+		return models.ErrorResponse[models.VerifyUserPinResponse]("failed to verify pin", wrappedErr.Error()), wrappedErr
+	}
+
+	response := models.VerifyUserPinResponse{
+		CustomerID: customerID,
+		IsValidPin: true,
+	}
+
+	return models.SuccessResponse("pin verified successfully", response), nil
+}
+
 func generateCustomerID() string {
-	return fmt.Sprintf("CUST%012d", time.Now().UnixNano()%1_000_000_000_000)
+	return fmt.Sprintf("%010d", time.Now().UnixNano()%10_000_000_000)
+}
+
+func hashTransactionPin(pin string) (string, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(pin), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("hash transaction pin: %w", err)
+	}
+
+	return string(hashed), nil
 }

@@ -11,6 +11,7 @@ import (
 type UserService interface {
 	CreateUser(ctx context.Context, req models.CreateUserRequest) (models.Response[models.CreateUserResponse], error)
 	GetUser(ctx context.Context, id string) (models.Response[models.GetUserResponse], error)
+	VerifyUserPin(ctx context.Context, customerID string, pin string) (models.Response[models.VerifyUserPinResponse], error)
 }
 
 type UserController struct {
@@ -23,10 +24,13 @@ func NewUserController(service UserService) *UserController {
 
 func (c *UserController) RegisterRoutes(mux *http.ServeMux, authMiddleware func(http.Handler) http.Handler) {
 	handler := http.HandlerFunc(c.createUser)
+	verifyPinHandler := http.HandlerFunc(c.verifyUserPin)
 	if authMiddleware != nil {
 		handler = authMiddleware(handler).ServeHTTP
+		verifyPinHandler = authMiddleware(verifyPinHandler).ServeHTTP
 	}
-	mux.Handle("/users", http.HandlerFunc(handler))
+	mux.Handle("/create-user", http.HandlerFunc(handler))
+	mux.Handle("/verify-pin", http.HandlerFunc(verifyPinHandler))
 }
 
 func (c *UserController) createUser(w http.ResponseWriter, r *http.Request) {
@@ -57,4 +61,34 @@ func (c *UserController) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, response)
+}
+
+func (c *UserController) verifyUserPin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, models.ErrorResponse[models.VerifyUserPinResponse]("method not allowed"))
+		return
+	}
+
+	var req models.VerifyUserPinRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse[models.VerifyUserPinResponse]("invalid request body", err.Error()))
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse[models.VerifyUserPinResponse]("validation failed", err.Error()))
+		return
+	}
+
+	response, err := c.service.VerifyUserPin(r.Context(), req.CustomerID, req.Pin)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if response.Message == "validation failed" || response.Message == "invalid pin" {
+			status = http.StatusBadRequest
+		}
+		writeJSON(w, status, response)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response)
 }
