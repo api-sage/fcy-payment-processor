@@ -51,6 +51,7 @@ func main() {
 
 	addr := ":" + port
 	log.Printf("server listening on %s", addr)
+	log.Printf("registered routes: POST /create-account, POST /create-user, POST /verify-pin, GET /swagger")
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("start http server: %v", err)
 	}
