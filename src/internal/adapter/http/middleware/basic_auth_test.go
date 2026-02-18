@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,7 +13,8 @@ func TestBasicAuth_AllowsValidCredentials(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("GreyApp:GrehoundKey001")))
+	req.Header.Set("X-Channel-ID", "GreyApp")
+	req.Header.Set("X-Channel-Key", "GrehoundKey001")
 
 	rr := httptest.NewRecorder()
 	mw(next).ServeHTTP(rr, req)
@@ -31,7 +31,8 @@ func TestBasicAuth_RejectsInvalidCredentials(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("GreyApp:WrongKey")))
+	req.Header.Set("X-Channel-ID", "GreyApp")
+	req.Header.Set("X-Channel-Key", "WrongKey")
 
 	rr := httptest.NewRecorder()
 	mw(next).ServeHTTP(rr, req)

@@ -20,8 +20,12 @@ func NewAccountController(service AccountService) *AccountController {
 	return &AccountController{service: service}
 }
 
-func (c *AccountController) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/accounts", c.createAccount)
+func (c *AccountController) RegisterRoutes(mux *http.ServeMux, authMiddleware func(http.Handler) http.Handler) {
+	handler := http.HandlerFunc(c.createAccount)
+	if authMiddleware != nil {
+		handler = authMiddleware(handler).ServeHTTP
+	}
+	mux.Handle("/accounts", http.HandlerFunc(handler))
 }
 
 func (c *AccountController) createAccount(w http.ResponseWriter, r *http.Request) {

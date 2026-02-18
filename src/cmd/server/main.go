@@ -3,10 +3,15 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
+	"os"
 	"time"
 
+	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/controller"
+	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/middleware"
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/postgres"
 	"github.com/api-sage/ccy-payment-processor/src/internal/config"
+	"github.com/api-sage/ccy-payment-processor/src/internal/usecase"
 )
 
 func main() {
@@ -22,5 +27,27 @@ func main() {
 		log.Fatalf("run migrations: %v", err)
 	}
 
-	log.Println("initial migrations completed successfully")
+	db, err := postgres.Open(ctx, cfg.DatabaseDSN)
+	if err != nil {
+		log.Fatalf("open database: %v", err)
+	}
+	defer db.Close()
+
+	accountRepo := postgres.NewAccountRepository(db)
+	accountService := usecase.NewAccountService(accountRepo)
+	accountController := controller.NewAccountController(accountService)
+
+	mux := http.NewServeMux()
+	accountController.RegisterRoutes(mux, middleware.ChannelAuth(cfg.ChannelID, cfg.ChannelKey))
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	addr := ":" + port
+	log.Printf("server listening on %s", addr)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		log.Fatalf("start http server: %v", err)
+	}
 }
