@@ -51,7 +51,7 @@ const openAPI = `{
     "version": "1.0.0"
   },
   "paths": {
-    "/create-account": {
+    "/accounts": {
       "post": {
         "summary": "Create account",
         "security": [
@@ -71,6 +71,54 @@ const openAPI = `{
                   "customerId": {"type": "string"},
                   "currency": {"type": "string", "enum": ["USD", "EUR", "GBP"]},
                   "initialDeposit": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {"description": "Created"},
+          "400": {"description": "Validation error"},
+          "401": {"description": "Unauthorized"},
+          "500": {"description": "Server error"}
+        }
+      }
+    },
+    "/users": {
+      "post": {
+        "summary": "Create user",
+        "security": [
+          {
+            "ChannelID": [],
+            "ChannelKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "firstName",
+                  "lastName",
+                  "dob",
+                  "phoneNumber",
+                  "idType",
+                  "idNumber",
+                  "kycLevel",
+                  "transactionPinHas"
+                ],
+                "properties": {
+                  "firstName": {"type": "string"},
+                  "middleName": {"type": "string"},
+                  "lastName": {"type": "string"},
+                  "dob": {"type": "string", "example": "1992-01-01"},
+                  "phoneNumber": {"type": "string"},
+                  "idType": {"type": "string", "enum": ["Passport", "DL"]},
+                  "idNumber": {"type": "string"},
+                  "kycLevel": {"type": "integer", "minimum": 1},
+                  "transactionPinHas": {"type": "string"}
                 }
               }
             }
