@@ -13,6 +13,7 @@ type UserRouteRegistrar interface {
 func New(accountController AccountRouteRegistrar, userController UserRouteRegistrar, authMiddleware func(http.Handler) http.Handler) *http.ServeMux {
 	mux := http.NewServeMux()
 	registerSwaggerRoutes(mux)
+	mux.Handle("/account", http.RedirectHandler("/get-account", http.StatusMovedPermanently))
 	mux.Handle("/verify-user-pin", http.RedirectHandler("/verify-pin", http.StatusMovedPermanently))
 
 	if accountController != nil {
