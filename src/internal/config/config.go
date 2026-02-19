@@ -1,8 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -10,6 +12,8 @@ const defaultConnectionString = "Host=localhost;Port=5432;Database=payment_syste
 const defaultChannelID = "GreyApp"
 const defaultChannelKey = "GreyhoundKey001"
 const defaultGreyBankCode = "100100"
+const defaultChargePercent = 2.0
+const defaultVATPercent = 7.5
 
 type Config struct {
 	DatabaseDSN   string
@@ -17,6 +21,8 @@ type Config struct {
 	ChannelID     string
 	ChannelKey    string
 	GreyBankCode  string
+	ChargePercent float64
+	VATPercent    float64
 }
 
 func Load() (Config, error) {
@@ -40,13 +46,42 @@ func Load() (Config, error) {
 		greyBankCode = defaultGreyBankCode
 	}
 
+	chargePercent, err := parsePercentageEnv("CHARGE_PERCENT", defaultChargePercent)
+	if err != nil {
+		return Config{}, err
+	}
+
+	vatPercent, err := parsePercentageEnv("VAT_PERCENT", defaultVATPercent)
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		DatabaseDSN:   normalizeConnectionString(conn),
 		MigrationsDir: filepath.Join("src", "migrations"),
 		ChannelID:     channelID,
 		ChannelKey:    channelKey,
 		GreyBankCode:  greyBankCode,
+		ChargePercent: chargePercent,
+		VATPercent:    vatPercent,
 	}, nil
+}
+
+func parsePercentageEnv(key string, fallback float64) (float64, error) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback, nil
+	}
+
+	value, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s: %w", key, err)
+	}
+	if value < 0 {
+		return 0, fmt.Errorf("%s cannot be negative", key)
+	}
+
+	return value, nil
 }
 
 func normalizeConnectionString(raw string) string {
