@@ -48,7 +48,7 @@ ccy-payment-processor/
 * POST /getAccount          -> { accountnumber }
 * GET  /getparticipantbanks -> returns List<Bank>
 * POST /validateaccount     -> { accountnumber, bankcode }
-* POST /getccyrates         -> { amount, fromCcy, toCcy }
+* POST /convertfcyamount    -> { amount, fromCcy, toCcy }
 * GET  /getcharges          -> ?ccy=USD&amount=100
 * POST /intratransfer       -> (Internal Transfer Payload)
 * POST /intertransfers      -> (External Transfer Payload + bankcode)
