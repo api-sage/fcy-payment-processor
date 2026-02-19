@@ -3,12 +3,12 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
+	"github.com/shopspring/decimal"
 )
 
 type RateService struct {
@@ -70,23 +70,23 @@ func (s *RateService) ConvertRate(ctx context.Context, amount string, fromCcy st
 		return "", "", "", fmt.Errorf("fromCcy and toCcy cannot be the same")
 	}
 
-	parsedAmount, err := strconv.ParseFloat(trimmedAmount, 64)
+	parsedAmount, err := decimal.NewFromString(trimmedAmount)
 	if err != nil {
 		return "", "", "", fmt.Errorf("amount must be numeric: %w", err)
 	}
-	if parsedAmount <= 0 {
+	if parsedAmount.LessThanOrEqual(decimal.Zero) {
 		return "", "", "", fmt.Errorf("amount must be greater than zero")
 	}
 
 	rate, err := s.rateRepo.GetRate(ctx, fromCurrency, toCurrency)
 	if err == nil {
-		usedRate, parseErr := strconv.ParseFloat(rate.SellRate, 64)
+		usedRate, parseErr := decimal.NewFromString(strings.TrimSpace(rate.SellRate))
 		if parseErr != nil {
 			return "", "", "", fmt.Errorf("invalid stored sell rate: %w", parseErr)
 		}
 
-		converted := parsedAmount * usedRate
-		return fmt.Sprintf("%.8f", converted), fmt.Sprintf("%.8f", usedRate), rate.RateDate.Format("2006-01-02"), nil
+		converted := parsedAmount.Mul(usedRate)
+		return converted.StringFixed(8), usedRate.StringFixed(8), rate.RateDate.Format("2006-01-02"), nil
 	}
 
 	inverseRate, inverseErr := s.rateRepo.GetRate(ctx, toCurrency, fromCurrency)
@@ -94,17 +94,17 @@ func (s *RateService) ConvertRate(ctx context.Context, amount string, fromCcy st
 		return "", "", "", err
 	}
 
-	inverseValue, parseErr := strconv.ParseFloat(inverseRate.SellRate, 64)
+	inverseValue, parseErr := decimal.NewFromString(strings.TrimSpace(inverseRate.SellRate))
 	if parseErr != nil {
 		return "", "", "", fmt.Errorf("invalid stored inverse sell rate: %w", parseErr)
 	}
-	if inverseValue == 0 {
+	if inverseValue.Equal(decimal.Zero) {
 		return "", "", "", fmt.Errorf("inverse rate cannot be zero")
 	}
 
-	usedRate := 1 / inverseValue
-	converted := parsedAmount * usedRate
-	return fmt.Sprintf("%.8f", converted), fmt.Sprintf("%.8f", usedRate), inverseRate.RateDate.Format("2006-01-02"), nil
+	usedRate := decimal.NewFromInt(1).Div(inverseValue)
+	converted := parsedAmount.Mul(usedRate)
+	return converted.StringFixed(8), usedRate.StringFixed(8), inverseRate.RateDate.Format("2006-01-02"), nil
 }
 
 func (s *RateService) GetCcyRates(ctx context.Context, req models.GetCcyRatesRequest) (models.Response[models.GetCcyRatesResponse], error) {

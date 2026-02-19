@@ -3,10 +3,10 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/shopspring/decimal"
 )
 
 type ChargesService struct {
@@ -57,17 +57,20 @@ func (s *ChargesService) GetCharges(amount string, fromCurrency string) (string,
 		return "", "", "", "", "", fmt.Errorf("fromCurrency must be 3 characters")
 	}
 
-	amountValue, err := strconv.ParseFloat(trimmedAmount, 64)
+	amountValue, err := decimal.NewFromString(trimmedAmount)
 	if err != nil {
 		return "", "", "", "", "", fmt.Errorf("amount must be numeric: %w", err)
 	}
-	if amountValue <= 0 {
+	if amountValue.LessThanOrEqual(decimal.Zero) {
 		return "", "", "", "", "", fmt.Errorf("amount must be greater than zero")
 	}
 
-	chargeValue := amountValue * (s.chargePercent / 100)
-	vatValue := amountValue * (s.vatPercent / 100)
-	totalValue := amountValue + chargeValue + vatValue
+	chargePercent := decimal.NewFromFloat(s.chargePercent).Div(decimal.NewFromInt(100))
+	vatPercent := decimal.NewFromFloat(s.vatPercent).Div(decimal.NewFromInt(100))
 
-	return fmt.Sprintf("%.2f", amountValue), ccy, fmt.Sprintf("%.2f", chargeValue), fmt.Sprintf("%.2f", vatValue), fmt.Sprintf("%.2f", totalValue), nil
+	chargeValue := amountValue.Mul(chargePercent)
+	vatValue := amountValue.Mul(vatPercent)
+	totalValue := amountValue.Add(chargeValue).Add(vatValue)
+
+	return amountValue.StringFixed(2), ccy, chargeValue.StringFixed(2), vatValue.StringFixed(2), totalValue.StringFixed(2), nil
 }

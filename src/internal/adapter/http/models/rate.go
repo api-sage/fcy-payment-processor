@@ -2,8 +2,9 @@ package models
 
 import (
 	"errors"
-	"strconv"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 type RateResponse struct {
@@ -66,10 +67,10 @@ func (r GetCcyRatesRequest) Validate() error {
 	if amount == "" {
 		errs = append(errs, "amount is required")
 	} else {
-		parsedAmount, err := strconv.ParseFloat(amount, 64)
+		parsedAmount, err := decimal.NewFromString(amount)
 		if err != nil {
 			errs = append(errs, "amount must be numeric")
-		} else if parsedAmount <= 0 {
+		} else if parsedAmount.LessThanOrEqual(decimal.Zero) {
 			errs = append(errs, "amount must be greater than zero")
 		}
 	}

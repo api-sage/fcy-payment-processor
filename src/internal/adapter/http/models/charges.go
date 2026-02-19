@@ -2,8 +2,9 @@ package models
 
 import (
 	"errors"
-	"strconv"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 type GetChargesRequest struct {
@@ -20,10 +21,10 @@ func (r GetChargesRequest) Validate() error {
 	if amount == "" {
 		errs = append(errs, "amount is required")
 	} else {
-		parsed, err := strconv.ParseFloat(amount, 64)
+		parsed, err := decimal.NewFromString(amount)
 		if err != nil {
 			errs = append(errs, "amount must be numeric")
-		} else if parsed <= 0 {
+		} else if parsed.LessThanOrEqual(decimal.Zero) {
 			errs = append(errs, "amount must be greater than zero")
 		}
 	}
