@@ -15,7 +15,6 @@ func BasicAuth(channelID, channelKey string) func(http.Handler) http.Handler {
 
 			id, key, ok := r.BasicAuth()
 			if !ok || !secureEqual(id, channelID) || !secureEqual(key, channelKey) {
-				w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}

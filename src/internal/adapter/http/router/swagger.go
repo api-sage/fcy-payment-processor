@@ -56,8 +56,7 @@ const openAPI = `{
         "summary": "Create account",
         "security": [
           {
-            "ChannelID": [],
-            "ChannelKey": []
+            "BasicAuth": []
           }
         ],
         "requestBody": {
@@ -89,8 +88,7 @@ const openAPI = `{
         "summary": "Get account by account number",
         "security": [
           {
-            "ChannelID": [],
-            "ChannelKey": []
+            "BasicAuth": []
           }
         ],
         "parameters": [
@@ -126,8 +124,7 @@ const openAPI = `{
         "summary": "Get participant banks",
         "security": [
           {
-            "ChannelID": [],
-            "ChannelKey": []
+            "BasicAuth": []
           }
         ],
         "responses": {
@@ -142,8 +139,7 @@ const openAPI = `{
         "summary": "Get all rates",
         "security": [
           {
-            "ChannelID": [],
-            "ChannelKey": []
+            "BasicAuth": []
           }
         ],
         "responses": {
@@ -158,8 +154,7 @@ const openAPI = `{
         "summary": "Get a specific rate by currency pair",
         "security": [
           {
-            "ChannelID": [],
-            "ChannelKey": []
+            "BasicAuth": []
           }
         ],
         "requestBody": {
@@ -190,8 +185,7 @@ const openAPI = `{
         "summary": "Get charge and VAT breakdown",
         "security": [
           {
-            "ChannelID": [],
-            "ChannelKey": []
+            "BasicAuth": []
           }
         ],
         "parameters": [
@@ -227,8 +221,7 @@ const openAPI = `{
         "summary": "Get converted amount by currency pair",
         "security": [
           {
-            "ChannelID": [],
-            "ChannelKey": []
+            "BasicAuth": []
           }
         ],
         "requestBody": {
@@ -260,8 +253,7 @@ const openAPI = `{
         "summary": "Create user",
         "security": [
           {
-            "ChannelID": [],
-            "ChannelKey": []
+            "BasicAuth": []
           }
         ],
         "requestBody": {
@@ -308,8 +300,7 @@ const openAPI = `{
         "summary": "Verify user transaction pin",
         "security": [
           {
-            "ChannelID": [],
-            "ChannelKey": []
+            "BasicAuth": []
           }
         ],
         "requestBody": {
@@ -338,15 +329,9 @@ const openAPI = `{
   },
   "components": {
     "securitySchemes": {
-      "ChannelID": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-Channel-ID"
-      },
-      "ChannelKey": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-Channel-Key"
+      "BasicAuth": {
+        "type": "http",
+        "scheme": "basic"
       }
     }
   }

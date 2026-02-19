@@ -9,6 +9,8 @@ import (
 )
 
 const defaultConnectionString = "Host=localhost;Port=5432;Database=payment_system_db;Username=postgres;Password=1&i355O8;Timeout=30;CommandTimeout=30"
+const defaultChannelID = "GreyApp"
+const defaultChannelKey = "GreyHoundKey001"
 const defaultGreyBankCode = "100100"
 const defaultChargePercent = 2.0
 const defaultVATPercent = 7.5
@@ -31,12 +33,12 @@ func Load() (Config, error) {
 
 	channelID := strings.TrimSpace(os.Getenv("CHANNEL_ID"))
 	if channelID == "" {
-		return Config{}, fmt.Errorf("CHANNEL_ID is required")
+		channelID = defaultChannelID
 	}
 
 	channelKey := strings.TrimSpace(os.Getenv("CHANNEL_KEY"))
 	if channelKey == "" {
-		return Config{}, fmt.Errorf("CHANNEL_KEY is required")
+		channelKey = defaultChannelKey
 	}
 
 	greyBankCode := strings.TrimSpace(os.Getenv("GREY_BANK_CODE"))
