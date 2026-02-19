@@ -58,6 +58,35 @@ func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAcc
 	return models.SuccessResponse("account created successfully", response), nil
 }
 
+func (s *AccountService) GetAccount(ctx context.Context, accountNumber string) (models.Response[models.GetAccountResponse], error) {
+	accountNumber = strings.TrimSpace(accountNumber)
+	if accountNumber == "" {
+		return models.ErrorResponse[models.GetAccountResponse]("validation failed", "accountNumber is required"), fmt.Errorf("accountNumber is required")
+	}
+	if !isTenDigitAccountNumber(accountNumber) {
+		return models.ErrorResponse[models.GetAccountResponse]("validation failed", "accountNumber must be exactly 10 digits"), fmt.Errorf("accountNumber must be exactly 10 digits")
+	}
+
+	account, err := s.accountRepo.GetByAccountNumber(ctx, accountNumber)
+	if err != nil {
+		return models.ErrorResponse[models.GetAccountResponse]("failed to get account", err.Error()), err
+	}
+
+	response := models.GetAccountResponse{
+		ID:               account.ID,
+		CustomerID:       account.CustomerID,
+		AccountNumber:    account.AccountNumber,
+		Currency:         account.Currency,
+		AvailableBalance: account.AvailableBalance,
+		LedgerBalance:    account.LedgerBalance,
+		Status:           string(account.Status),
+		CreatedAt:        account.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:        account.UpdatedAt.Format(time.RFC3339),
+	}
+
+	return models.SuccessResponse("account fetched successfully", response), nil
+}
+
 func parseBalance(raw string) (string, error) {
 	if strings.TrimSpace(raw) == "" {
 		return "0.00", nil
@@ -77,4 +106,18 @@ func parseBalance(raw string) (string, error) {
 
 func generateAccountNumber() string {
 	return fmt.Sprintf("%010d", time.Now().UnixNano()%10_000_000_000)
+}
+
+func isTenDigitAccountNumber(accountNumber string) bool {
+	if len(accountNumber) != 10 {
+		return false
+	}
+
+	for _, ch := range accountNumber {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+
+	return true
 }

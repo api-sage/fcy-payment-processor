@@ -84,6 +84,34 @@ const openAPI = `{
         }
       }
     },
+    "/get-account": {
+      "get": {
+        "summary": "Get account by account number",
+        "security": [
+          {
+            "ChannelID": [],
+            "ChannelKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "accountNumber",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{10}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {"description": "Account fetched"},
+          "400": {"description": "Validation error"},
+          "401": {"description": "Unauthorized"},
+          "500": {"description": "Server error"}
+        }
+      }
+    },
     "/create-user": {
       "post": {
         "summary": "Create user",

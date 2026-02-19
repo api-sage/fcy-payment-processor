@@ -10,6 +10,7 @@ import (
 
 type AccountService interface {
 	CreateAccount(ctx context.Context, req models.CreateAccountRequest) (models.Response[models.CreateAccountResponse], error)
+	GetAccount(ctx context.Context, accountNumber string) (models.Response[models.GetAccountResponse], error)
 }
 
 type AccountController struct {
@@ -22,10 +23,13 @@ func NewAccountController(service AccountService) *AccountController {
 
 func (c *AccountController) RegisterRoutes(mux *http.ServeMux, authMiddleware func(http.Handler) http.Handler) {
 	handler := http.HandlerFunc(c.createAccount)
+	getAccountHandler := http.HandlerFunc(c.getAccount)
 	if authMiddleware != nil {
 		handler = authMiddleware(handler).ServeHTTP
+		getAccountHandler = authMiddleware(getAccountHandler).ServeHTTP
 	}
 	mux.Handle("/create-account", http.HandlerFunc(handler))
+	mux.Handle("/get-account", http.HandlerFunc(getAccountHandler))
 }
 
 func (c *AccountController) createAccount(w http.ResponseWriter, r *http.Request) {
@@ -56,6 +60,26 @@ func (c *AccountController) createAccount(w http.ResponseWriter, r *http.Request
 	}
 
 	writeJSON(w, http.StatusCreated, response)
+}
+
+func (c *AccountController) getAccount(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, models.ErrorResponse[models.GetAccountResponse]("method not allowed"))
+		return
+	}
+
+	accountNumber := r.URL.Query().Get("accountNumber")
+	response, err := c.service.GetAccount(r.Context(), accountNumber)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if response.Message == "validation failed" {
+			status = http.StatusBadRequest
+		}
+		writeJSON(w, status, response)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response)
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
