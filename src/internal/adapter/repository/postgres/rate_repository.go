@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
@@ -51,4 +52,32 @@ ORDER BY rate_date DESC, from_currency ASC, to_currency ASC`
 	}
 
 	return rates, nil
+}
+
+func (r *RateRepository) GetRate(ctx context.Context, fromCurrency string, toCurrency string) (domain.Rate, error) {
+	const query = `
+SELECT id, from_currency, to_currency, sell_rate, buy_rate, rate_date, created_at
+FROM rates
+WHERE from_currency = $1
+  AND to_currency = $2
+ORDER BY rate_date DESC
+LIMIT 1`
+
+	var rate domain.Rate
+	if err := r.db.QueryRowContext(ctx, query, fromCurrency, toCurrency).Scan(
+		&rate.ID,
+		&rate.FromCurrency,
+		&rate.ToCurrency,
+		&rate.SellRate,
+		&rate.BuyRate,
+		&rate.RateDate,
+		&rate.CreatedAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.Rate{}, fmt.Errorf("rate not found: %w", err)
+		}
+		return domain.Rate{}, fmt.Errorf("get rate: %w", err)
+	}
+
+	return rate, nil
 }
