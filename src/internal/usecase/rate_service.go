@@ -107,6 +107,30 @@ func (s *RateService) ConvertRate(ctx context.Context, amount string, fromCcy st
 	return fmt.Sprintf("%.8f", converted), fmt.Sprintf("%.8f", usedRate), inverseRate.RateDate.Format("2006-01-02"), nil
 }
 
+func (s *RateService) GetCcyRates(ctx context.Context, req models.GetCcyRatesRequest) (models.Response[models.GetCcyRatesResponse], error) {
+	if err := req.Validate(); err != nil {
+		return models.ErrorResponse[models.GetCcyRatesResponse]("validation failed", err.Error()), err
+	}
+
+	convertedAmount, rateUsed, rateDate, err := s.ConvertRate(ctx, req.Amount, req.FromCcy, req.ToCcy)
+	if err != nil {
+		return models.ErrorResponse[models.GetCcyRatesResponse]("failed to get currency rates", err.Error()), err
+	}
+
+	response := models.GetCcyRatesResponse{
+		Request: models.GetCcyRatesRequest{
+			Amount:  strings.TrimSpace(req.Amount),
+			FromCcy: strings.ToUpper(strings.TrimSpace(req.FromCcy)),
+			ToCcy:   strings.ToUpper(strings.TrimSpace(req.ToCcy)),
+		},
+		ConvertedAmount: convertedAmount,
+		RateUsed:        rateUsed,
+		RateDate:        rateDate,
+	}
+
+	return models.SuccessResponse("currency rate fetched successfully", response), nil
+}
+
 func mapRateToResponse(rate domain.Rate) models.RateResponse {
 	return models.RateResponse{
 		ID:           rate.ID,
