@@ -1,6 +1,4 @@
-﻿Backend Take-Home 
-Assessment
-Payment Processing System
+﻿Payment Processing System
 
 Problem Statement
 Build a multi-currency payment processing system. The system should handle 
@@ -20,31 +18,17 @@ PostgreSQL for data persistence
 Docker Compose setup
 
 Production Considerations
-You are free to include everything you deem necessary for a production-ready 
-system.
+You are free to include everything you deem necessary for a production-ready system.
 We want to see your judgment on what matters most given the time constraint. 
 Document what you implemented and what you would add with more time.
-
-Backend Take-Home Assessment 1
-
-
 
 Deliverables
 1. Working code -  docker-compose up  should start everything
 2. README.md - Setup instructions and how to use
-3. Architecture - Your design decisions, trade-offs, and what you'd improve with 
-
-more time
+3. Architecture - Your design decisions, trade-offs, and what you'd improve with more time
 4. Tests - Demonstrate your testing philosophy
 
 What We're Evaluating
 Architecture and design decisions appropriate for fintech
 Code quality and Go best practices
 What you prioritize and why
-
-Submission
-Push to a GitHub repository and share the URL. 
-For further questions? Email taiwo@grey.co
-Good luck! We're excited to see your approach.
-
-Backend Take-Home Assessment 2
