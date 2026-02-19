@@ -71,6 +71,9 @@ func (c *RateController) getRate(w http.ResponseWriter, r *http.Request) {
 		if response.Message == "validation failed" {
 			status = http.StatusBadRequest
 		}
+		if response.Message == "Rate not found" {
+			status = http.StatusNotFound
+		}
 		writeJSON(w, status, response)
 		return
 	}
@@ -95,6 +98,9 @@ func (c *RateController) getCcyRates(w http.ResponseWriter, r *http.Request) {
 		status := http.StatusInternalServerError
 		if response.Message == "validation failed" {
 			status = http.StatusBadRequest
+		}
+		if response.Message == "Rate not found for currency pair" {
+			status = http.StatusNotFound
 		}
 		writeJSON(w, status, response)
 		return

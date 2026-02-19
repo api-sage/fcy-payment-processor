@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -22,7 +23,7 @@ func NewRateService(rateRepo domain.RateRepository) *RateService {
 func (s *RateService) GetRates(ctx context.Context) (models.Response[[]models.RateResponse], error) {
 	rates, err := s.rateRepo.GetRates(ctx)
 	if err != nil {
-		return models.ErrorResponse[[]models.RateResponse]("failed to get rates", err.Error()), err
+		return models.ErrorResponse[[]models.RateResponse]("failed to get rates", "Unable to fetch rates right now"), err
 	}
 
 	resp := make([]models.RateResponse, 0, len(rates))
@@ -43,7 +44,10 @@ func (s *RateService) GetRate(ctx context.Context, req models.GetRateRequest) (m
 
 	rate, err := s.rateRepo.GetRate(ctx, fromCurrency, toCurrency)
 	if err != nil {
-		return models.ErrorResponse[models.RateResponse]("failed to get rate", err.Error()), err
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			return models.ErrorResponse[models.RateResponse]("Rate not found"), err
+		}
+		return models.ErrorResponse[models.RateResponse]("failed to get rate", "Unable to fetch rate right now"), err
 	}
 
 	return models.SuccessResponse("rate fetched successfully", mapRateToResponse(rate)), nil
@@ -114,7 +118,10 @@ func (s *RateService) GetCcyRates(ctx context.Context, req models.GetCcyRatesReq
 
 	convertedAmount, rateUsed, rateDate, err := s.ConvertRate(ctx, req.Amount, req.FromCcy, req.ToCcy)
 	if err != nil {
-		return models.ErrorResponse[models.GetCcyRatesResponse]("failed to get currency rates", err.Error()), err
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			return models.ErrorResponse[models.GetCcyRatesResponse]("Rate not found for currency pair"), err
+		}
+		return models.ErrorResponse[models.GetCcyRatesResponse]("failed to get currency rates", "Unable to fetch currency rates right now"), err
 	}
 
 	response := models.GetCcyRatesResponse{

@@ -32,8 +32,8 @@ ASCII ERD
                                            |         transfers         |
                                            |---------------------------|
                                            | PK  id (UUID)             |
-| UQ  payment_reference     |
-| UQ  transaction_reference |
+                                           | UQ  payment_reference     |
+                                           | UQ  transaction_reference |
                                            | FK  debit_account_number  |
                                            |     credit_account_number |
                                            |     beneficiary_bank_code |

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -54,7 +55,7 @@ func (s *UserService) CreateUser(ctx context.Context, req models.CreateUserReque
 
 	created, err := s.userRepo.Create(ctx, user)
 	if err != nil {
-		return models.ErrorResponse[models.CreateUserResponse]("failed to create user", err.Error()), err
+		return models.ErrorResponse[models.CreateUserResponse]("failed to create user", "Unable to create user right now"), err
 	}
 
 	response := models.CreateUserResponse{
@@ -74,7 +75,10 @@ func (s *UserService) GetUser(ctx context.Context, id string) (models.Response[m
 
 	user, err := s.userRepo.GetByID(ctx, id)
 	if err != nil {
-		return models.ErrorResponse[models.GetUserResponse]("failed to get user", err.Error()), err
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			return models.ErrorResponse[models.GetUserResponse]("User not found"), err
+		}
+		return models.ErrorResponse[models.GetUserResponse]("failed to get user", "Unable to fetch user right now"), err
 	}
 
 	response := models.GetUserResponse{
@@ -109,7 +113,10 @@ func (s *UserService) VerifyUserPin(ctx context.Context, customerID string, pin 
 
 	storedPinHash, err := s.userRepo.GetTransactionPinHashByCustomerID(ctx, customerID)
 	if err != nil {
-		return models.ErrorResponse[models.VerifyUserPinResponse]("failed to verify pin", err.Error()), err
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			return models.ErrorResponse[models.VerifyUserPinResponse]("User not found"), err
+		}
+		return models.ErrorResponse[models.VerifyUserPinResponse]("failed to verify pin", "Unable to verify pin right now"), err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(storedPinHash), []byte(pin)); err != nil {
@@ -117,7 +124,7 @@ func (s *UserService) VerifyUserPin(ctx context.Context, customerID string, pin 
 			return models.ErrorResponse[models.VerifyUserPinResponse]("invalid pin", "provided pin does not match"), fmt.Errorf("invalid pin")
 		}
 		wrappedErr := fmt.Errorf("verify user pin: %w", err)
-		return models.ErrorResponse[models.VerifyUserPinResponse]("failed to verify pin", wrappedErr.Error()), wrappedErr
+		return models.ErrorResponse[models.VerifyUserPinResponse]("failed to verify pin", "Unable to verify pin right now"), wrappedErr
 	}
 
 	response := models.VerifyUserPinResponse{

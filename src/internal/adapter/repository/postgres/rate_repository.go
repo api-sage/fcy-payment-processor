@@ -74,7 +74,7 @@ LIMIT 1`
 		&rate.CreatedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.Rate{}, fmt.Errorf("rate not found: %w", err)
+			return domain.Rate{}, domain.ErrRecordNotFound
 		}
 		return domain.Rate{}, fmt.Errorf("get rate: %w", err)
 	}

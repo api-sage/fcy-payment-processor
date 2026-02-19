@@ -67,7 +67,7 @@ WHERE id = $1`
 	var user domain.User
 	if err := scanUser(r.db.QueryRowContext(ctx, query, id), &user); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.User{}, fmt.Errorf("user not found: %w", err)
+			return domain.User{}, domain.ErrRecordNotFound
 		}
 		return domain.User{}, fmt.Errorf("get user by id: %w", err)
 	}
@@ -109,7 +109,7 @@ RETURNING id, customer_id, first_name, middle_name, last_name, dob, phone_number
 		user.TransactionPinHash,
 	), &updated); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.User{}, fmt.Errorf("user not found: %w", err)
+			return domain.User{}, domain.ErrRecordNotFound
 		}
 		return domain.User{}, fmt.Errorf("update user: %w", err)
 	}
@@ -126,7 +126,7 @@ WHERE customer_id = $1`
 	var transactionPinHash string
 	if err := r.db.QueryRowContext(ctx, query, customerID).Scan(&transactionPinHash); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", fmt.Errorf("user not found: %w", err)
+			return "", domain.ErrRecordNotFound
 		}
 		return "", fmt.Errorf("get transaction pin hash by customer id: %w", err)
 	}

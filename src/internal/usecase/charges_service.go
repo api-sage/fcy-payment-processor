@@ -29,7 +29,7 @@ func (s *ChargesService) GetChargesSummary(ctx context.Context, req models.GetCh
 
 	amount, currency, charge, vat, sumTotal, err := s.GetCharges(req.Amount, req.FromCurrency)
 	if err != nil {
-		return models.ErrorResponse[models.GetChargesResponse]("failed to get charges", err.Error()), err
+		return models.ErrorResponse[models.GetChargesResponse]("failed to get charges", "Unable to fetch charges right now"), err
 	}
 
 	response := models.GetChargesResponse{
