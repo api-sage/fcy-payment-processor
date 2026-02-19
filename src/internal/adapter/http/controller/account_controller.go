@@ -76,6 +76,9 @@ func (c *AccountController) getAccount(w http.ResponseWriter, r *http.Request) {
 		if response.Message == "validation failed" {
 			status = http.StatusBadRequest
 		}
+		if response.Message == "Account not found" {
+			status = http.StatusNotFound
+		}
 		writeJSON(w, status, response)
 		return
 	}

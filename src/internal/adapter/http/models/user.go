@@ -68,19 +68,19 @@ type CreateUserResponse struct {
 }
 
 type GetUserResponse struct {
-	ID                string  `json:"id"`
-	CustomerID        string  `json:"customerId"`
-	FirstName         string  `json:"firstName"`
-	MiddleName        *string `json:"middleName,omitempty"`
-	LastName          string  `json:"lastName"`
-	DOB               string  `json:"dob"`
-	PhoneNumber       string  `json:"phoneNumber"`
-	IDType            string  `json:"idType"`
-	IDNumber          string  `json:"idNumber"`
-	KYCLevel          int     `json:"kycLevel"`
-	TransactionPinHas string  `json:"transactionPinHas"`
-	CreatedAt         string  `json:"createdAt"`
-	UpdatedAt         string  `json:"updatedAt"`
+	ID                 string  `json:"id"`
+	CustomerID         string  `json:"customerId"`
+	FirstName          string  `json:"firstName"`
+	MiddleName         *string `json:"middleName,omitempty"`
+	LastName           string  `json:"lastName"`
+	DOB                string  `json:"dob"`
+	PhoneNumber        string  `json:"phoneNumber"`
+	IDType             string  `json:"idType"`
+	IDNumber           string  `json:"idNumber"`
+	KYCLevel           int     `json:"kycLevel"`
+	TransactionPinHash string  `json:"transactionPinHash"`
+	CreatedAt          string  `json:"createdAt"`
+	UpdatedAt          string  `json:"updatedAt"`
 }
 
 type VerifyUserPinRequest struct {

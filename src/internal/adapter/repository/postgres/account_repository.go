@@ -73,7 +73,7 @@ WHERE account_number = $1`
 		&account.UpdatedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.Account{}, fmt.Errorf("account not found: %w", err)
+			return domain.Account{}, domain.ErrRecordNotFound
 		}
 		return domain.Account{}, fmt.Errorf("get account by account number: %w", err)
 	}

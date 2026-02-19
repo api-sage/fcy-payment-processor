@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -50,7 +51,7 @@ func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAcc
 
 	created, err := s.accountRepo.Create(ctx, account)
 	if err != nil {
-		return models.ErrorResponse[models.CreateAccountResponse]("failed to create account", err.Error()), err
+		return models.ErrorResponse[models.CreateAccountResponse]("failed to create account", "Unable to create account right now"), err
 	}
 
 	response := models.CreateAccountResponse{
@@ -88,7 +89,7 @@ func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, b
 	if bankCode != s.greyBankCode {
 		banks, err := s.participantBankRepo.GetAll(ctx)
 		if err != nil {
-			return models.ErrorResponse[models.GetAccountResponse]("failed to get account", err.Error()), err
+			return models.ErrorResponse[models.GetAccountResponse]("failed to get account", "Unable to fetch account right now"), err
 		}
 
 		var mappedBankName string
@@ -114,7 +115,10 @@ func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, b
 
 	account, err := s.accountRepo.GetByAccountNumber(ctx, accountNumber)
 	if err != nil {
-		return models.ErrorResponse[models.GetAccountResponse]("failed to get account", err.Error()), err
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			return models.ErrorResponse[models.GetAccountResponse]("Account not found"), err
+		}
+		return models.ErrorResponse[models.GetAccountResponse]("failed to get account", "Unable to fetch account right now"), err
 	}
 
 	response := models.GetAccountResponse{

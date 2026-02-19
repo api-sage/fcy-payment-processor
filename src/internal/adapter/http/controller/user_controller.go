@@ -86,6 +86,9 @@ func (c *UserController) verifyUserPin(w http.ResponseWriter, r *http.Request) {
 		if response.Message == "validation failed" || response.Message == "invalid pin" {
 			status = http.StatusBadRequest
 		}
+		if response.Message == "User not found" {
+			status = http.StatusNotFound
+		}
 		writeJSON(w, status, response)
 		return
 	}

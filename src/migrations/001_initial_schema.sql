@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     id_type VARCHAR(16) NOT NULL CHECK (id_type IN ('Passport', 'DL')),
     id_number VARCHAR(128) NOT NULL,
     kyc_level INTEGER NOT NULL CHECK (kyc_level > 0),
-    transaction_pin_has VARCHAR(255) NOT NULL,
+    transaction_pin_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -33,6 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_accounts_customer_id ON accounts(customer_id);
 CREATE TABLE IF NOT EXISTS transfers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     payment_reference VARCHAR(64) UNIQUE,
+    transaction_reference VARCHAR(64) UNIQUE,
     debit_account_number VARCHAR(32) NOT NULL REFERENCES accounts(account_number),
     credit_account_number VARCHAR(32),
     beneficiary_bank_code VARCHAR(16),
@@ -40,7 +41,7 @@ CREATE TABLE IF NOT EXISTS transfers (
     credit_currency CHAR(3) NOT NULL CHECK (credit_currency IN ('USD', 'EUR', 'GBP')),
     debit_amount NUMERIC(20, 2) NOT NULL,
     credit_amount NUMERIC(20, 2) NOT NULL,
-    ccy_rate NUMERIC(20, 8) NOT NULL,
+    fcy_rate NUMERIC(20, 8) NOT NULL,
     charge_amount NUMERIC(20, 2) NOT NULL DEFAULT 0,
     vat_amount NUMERIC(20, 2) NOT NULL DEFAULT 0,
     status VARCHAR(16) NOT NULL CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED')),

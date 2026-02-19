@@ -18,7 +18,7 @@ func NewParticipantBankService(participantBankRepo domain.ParticipantBankReposit
 func (s *ParticipantBankService) GetParticipantBanks(ctx context.Context) (models.Response[[]models.ParticipantBankResponse], error) {
 	banks, err := s.participantBankRepo.GetAll(ctx)
 	if err != nil {
-		return models.ErrorResponse[[]models.ParticipantBankResponse]("failed to fetch participant banks", err.Error()), err
+		return models.ErrorResponse[[]models.ParticipantBankResponse]("failed to fetch participant banks", "Unable to fetch participant banks right now"), err
 	}
 
 	resp := make([]models.ParticipantBankResponse, 0, len(banks))
