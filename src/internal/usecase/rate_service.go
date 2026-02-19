@@ -118,11 +118,9 @@ func (s *RateService) GetCcyRates(ctx context.Context, req models.GetCcyRatesReq
 	}
 
 	response := models.GetCcyRatesResponse{
-		Request: models.GetCcyRatesRequest{
-			Amount:  strings.TrimSpace(req.Amount),
-			FromCcy: strings.ToUpper(strings.TrimSpace(req.FromCcy)),
-			ToCcy:   strings.ToUpper(strings.TrimSpace(req.ToCcy)),
-		},
+		Amount:          strings.TrimSpace(req.Amount),
+		FromCcy:         strings.ToUpper(strings.TrimSpace(req.FromCcy)),
+		ToCcy:           strings.ToUpper(strings.TrimSpace(req.ToCcy)),
 		ConvertedAmount: convertedAmount,
 		RateUsed:        rateUsed,
 		RateDate:        rateDate,

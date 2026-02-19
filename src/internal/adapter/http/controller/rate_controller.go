@@ -35,7 +35,7 @@ func (c *RateController) RegisterRoutes(mux *http.ServeMux, authMiddleware func(
 
 	mux.Handle("/get-rates", http.HandlerFunc(getRatesHandler))
 	mux.Handle("/get-rate", http.HandlerFunc(getRateHandler))
-	mux.Handle("/getccyrates", http.HandlerFunc(getCcyRatesHandler))
+	mux.Handle("/convertfcyamount", http.HandlerFunc(getCcyRatesHandler))
 }
 
 func (c *RateController) getRates(w http.ResponseWriter, r *http.Request) {

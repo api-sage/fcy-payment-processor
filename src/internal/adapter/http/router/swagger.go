@@ -185,7 +185,7 @@ const openAPI = `{
         }
       }
     },
-    "/getccyrates": {
+    "/convertfcyamount": {
       "post": {
         "summary": "Get converted amount by currency pair",
         "security": [

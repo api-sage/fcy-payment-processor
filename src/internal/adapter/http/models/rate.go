@@ -98,8 +98,10 @@ func (r GetCcyRatesRequest) Validate() error {
 }
 
 type GetCcyRatesResponse struct {
-	Request         GetCcyRatesRequest `json:"request"`
-	ConvertedAmount string             `json:"convertedAmount"`
-	RateUsed        string             `json:"rateUsed"`
-	RateDate        string             `json:"rateDate"`
+	Amount          string `json:"amount"`
+	FromCcy         string `json:"fromCcy"`
+	ToCcy           string `json:"toCcy"`
+	ConvertedAmount string `json:"convertedAmount"`
+	RateUsed        string `json:"rateUsed"`
+	RateDate        string `json:"rateDate"`
 }
