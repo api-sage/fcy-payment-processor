@@ -10,6 +10,7 @@ import (
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/controller"
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/middleware"
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/router"
+	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/memory"
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/postgres"
 	"github.com/api-sage/ccy-payment-processor/src/internal/config"
 	"github.com/api-sage/ccy-payment-processor/src/internal/usecase"
@@ -34,15 +35,24 @@ func main() {
 	}
 	defer db.Close()
 
+	participantBankRepo := memory.NewParticipantBankRepository()
+
 	accountRepo := postgres.NewAccountRepository(db)
-	accountService := usecase.NewAccountService(accountRepo)
+	accountService := usecase.NewAccountService(accountRepo, participantBankRepo, cfg.GreyBankCode)
 	accountController := controller.NewAccountController(accountService)
 
 	userRepo := postgres.NewUserRepository(db)
 	userService := usecase.NewUserService(userRepo)
 	userController := controller.NewUserController(userService)
 
-	mux := router.New(accountController, userController, middleware.BasicAuth(cfg.ChannelID, cfg.ChannelKey))
+	participantBankService := usecase.NewParticipantBankService(participantBankRepo)
+	participantBankController := controller.NewParticipantBankController(participantBankService)
+
+	rateRepo := postgres.NewRateRepository(db)
+	rateService := usecase.NewRateService(rateRepo)
+	rateController := controller.NewRateController(rateService)
+
+	mux := router.New(accountController, userController, participantBankController, rateController, middleware.BasicAuth(cfg.ChannelID, cfg.ChannelKey))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -51,7 +61,6 @@ func main() {
 
 	addr := ":" + port
 	log.Printf("server listening on %s", addr)
-	log.Printf("registered routes: POST /create-account, GET /get-account, POST /create-user, POST /verify-pin, GET /swagger")
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("start http server: %v", err)
 	}
