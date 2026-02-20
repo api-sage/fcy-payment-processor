@@ -60,7 +60,7 @@ func NewTransferService(
 
 var transferRefCounter uint32
 
-func (s *TransferService) InternalTransfer(ctx context.Context, req models.InternalTransferRequest) (models.Response[models.InternalTransferResponse], error) {
+func (s *TransferService) TransferFunds(ctx context.Context, req models.InternalTransferRequest) (models.Response[models.InternalTransferResponse], error) {
 	logger.Info("transfer service internal transfer request", logger.Fields{
 		"payload": logger.SanitizePayload(req),
 	})
