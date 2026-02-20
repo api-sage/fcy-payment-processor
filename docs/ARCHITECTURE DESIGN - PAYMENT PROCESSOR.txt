@@ -83,9 +83,9 @@ C. Fund Movement (Suspense Account Pattern):
        3. Credit Beneficiary 'convertedAmount' via Suspense.
 
 D. Post-Processing:
-   - Generate unique PaymentReference.
+   - Generate unique ExternalRefernece.
    - Update 'Transfers' table status to SUCCESS.
-   - Update 'TransientAccountTransactions' with the PaymentReference.
+   - Update 'TransientAccountTransactions' with the ExternalRefernece.
 
 5. CLEAN ARCHITECTURE STRUCTURE
 -------------------------------
