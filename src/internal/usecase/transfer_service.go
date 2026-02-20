@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/interfaces"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 	"github.com/lib/pq"
@@ -17,11 +18,11 @@ import (
 )
 
 type TransferService struct {
-	transferRepo                    domain.TransferRepository
-	accountRepo                     domain.AccountRepository
-	transientAccountRepo            domain.TransientAccountRepository
-	transientAccountTransactionRepo domain.TransientAccountTransactionRepository
-	rateRepo                        domain.RateRepository
+	transferRepo                    interfaces.TransferRepository
+	accountRepo                     interfaces.AccountRepository
+	transientAccountRepo            interfaces.TransientAccountRepository
+	transientAccountTransactionRepo interfaces.TransientAccountTransactionRepository
+	rateRepo                        interfaces.RateRepository
 	rateService                     *RateService
 	chargeService                   *ChargesService
 	chargePercent                   float64
@@ -33,11 +34,11 @@ type TransferService struct {
 }
 
 func NewTransferService(
-	transferRepo domain.TransferRepository,
-	accountRepo domain.AccountRepository,
-	transientAccountRepo domain.TransientAccountRepository,
-	transientAccountTransactionRepo domain.TransientAccountTransactionRepository,
-	rateRepo domain.RateRepository,
+	transferRepo interfaces.TransferRepository,
+	accountRepo interfaces.AccountRepository,
+	transientAccountRepo interfaces.TransientAccountRepository,
+	transientAccountTransactionRepo interfaces.TransientAccountTransactionRepository,
+	rateRepo interfaces.RateRepository,
 	rateService *RateService,
 	chargeService *ChargesService,
 	chargePercent float64,

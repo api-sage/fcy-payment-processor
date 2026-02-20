@@ -8,16 +8,17 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/interfaces"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 	"github.com/shopspring/decimal"
 )
 
 type RateService struct {
-	rateRepo domain.RateRepository
+	rateRepo interfaces.RateRepository
 }
 
-func NewRateService(rateRepo domain.RateRepository) *RateService {
+func NewRateService(rateRepo interfaces.RateRepository) *RateService {
 	return &RateService{rateRepo: rateRepo}
 }
 

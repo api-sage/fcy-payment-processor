@@ -9,18 +9,19 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/interfaces"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type AccountService struct {
-	accountRepo         domain.AccountRepository
+	accountRepo         interfaces.AccountRepository
 	participantBankRepo domain.ParticipantBankRepository
 	greyBankCode        string
 }
 
 func NewAccountService(
-	accountRepo domain.AccountRepository,
+	accountRepo interfaces.AccountRepository,
 	participantBankRepo domain.ParticipantBankRepository,
 	greyBankCode string,
 ) *AccountService {
