@@ -14,13 +14,13 @@ import (
 
 type ChargesService struct {
 	rateRepo      domain.RateRepository
-	chargePercent float64
-	vatPercent    float64
-	chargeMin     float64
-	chargeMax     float64
+	chargePercent decimal.Decimal
+	vatPercent    decimal.Decimal
+	chargeMin     decimal.Decimal
+	chargeMax     decimal.Decimal
 }
 
-func NewChargesService(rateRepo domain.RateRepository, chargePercent float64, vatPercent float64, chargeMin float64, chargeMax float64) *ChargesService {
+func NewChargesService(rateRepo domain.RateRepository, chargePercent decimal.Decimal, vatPercent decimal.Decimal, chargeMin decimal.Decimal, chargeMax decimal.Decimal) *ChargesService {
 	return &ChargesService{
 		rateRepo:      rateRepo,
 		chargePercent: chargePercent,
@@ -90,10 +90,10 @@ func (s *ChargesService) GetCharges(ctx context.Context, amount string, fromCurr
 		return "", "", "", "", "", fmt.Errorf("amount must be greater than zero")
 	}
 
-	chargePercent := decimal.NewFromFloat(s.chargePercent).Div(decimal.NewFromInt(100))
-	vatPercent := decimal.NewFromFloat(s.vatPercent).Div(decimal.NewFromInt(100))
-	chargeMin := decimal.NewFromFloat(s.chargeMin)
-	chargeMax := decimal.NewFromFloat(s.chargeMax)
+	chargePercent := s.chargePercent.Div(decimal.NewFromInt(100))
+	vatPercent := s.vatPercent.Div(decimal.NewFromInt(100))
+	chargeMin := s.chargeMin
+	chargeMax := s.chargeMax
 
 	calculationAmount := amountValue
 	conversionRate := decimal.NewFromInt(1)

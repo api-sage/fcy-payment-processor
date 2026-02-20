@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 const defaultConnectionString = "Host=localhost;Port=5432;Database=payment_system_db;Username=postgres;Password=1&i355O8;Timeout=30;CommandTimeout=30"
 const defaultChannelID = "GreyApp"
 const defaultChannelKey = "GreyHoundKey001"
 const defaultGreyBankCode = "100100"
-const defaultChargePercent = 1.0
-const defaultVATPercent = 7.5
-const defaultChargeMinAmount = 2.0
-const defaultChargeMaxAmount = 20.0
+const defaultChargePercent = "1.0"
+const defaultVATPercent = "7.5"
+const defaultChargeMinAmount = "2.0"
+const defaultChargeMaxAmount = "20.0"
 
 type Config struct {
 	DatabaseDSN   string
@@ -23,10 +24,10 @@ type Config struct {
 	ChannelID     string
 	ChannelKey    string
 	GreyBankCode  string
-	ChargePercent float64
-	VATPercent    float64
-	ChargeMin     float64
-	ChargeMax     float64
+	ChargePercent decimal.Decimal
+	VATPercent    decimal.Decimal
+	ChargeMin     decimal.Decimal
+	ChargeMax     decimal.Decimal
 }
 
 func Load() (Config, error) {
@@ -50,26 +51,26 @@ func Load() (Config, error) {
 		greyBankCode = defaultGreyBankCode
 	}
 
-	chargePercent, err := parsePercentageEnv("CHARGE_PERCENT", defaultChargePercent)
+	chargePercent, err := parseDecimalEnv("CHARGE_PERCENT", defaultChargePercent)
 	if err != nil {
 		return Config{}, err
 	}
 
-	vatPercent, err := parsePercentageEnv("VAT_PERCENT", defaultVATPercent)
+	vatPercent, err := parseDecimalEnv("VAT_PERCENT", defaultVATPercent)
 	if err != nil {
 		return Config{}, err
 	}
 
-	chargeMin, err := parseAmountEnv("CHARGE_MIN_AMOUNT", defaultChargeMinAmount)
+	chargeMin, err := parseDecimalEnv("CHARGE_MIN_AMOUNT", defaultChargeMinAmount)
 	if err != nil {
 		return Config{}, err
 	}
 
-	chargeMax, err := parseAmountEnv("CHARGE_MAX_AMOUNT", defaultChargeMaxAmount)
+	chargeMax, err := parseDecimalEnv("CHARGE_MAX_AMOUNT", defaultChargeMaxAmount)
 	if err != nil {
 		return Config{}, err
 	}
-	if chargeMax < chargeMin {
+	if chargeMax.LessThan(chargeMin) {
 		return Config{}, fmt.Errorf("CHARGE_MAX_AMOUNT cannot be less than CHARGE_MIN_AMOUNT")
 	}
 
@@ -86,35 +87,18 @@ func Load() (Config, error) {
 	}, nil
 }
 
-func parsePercentageEnv(key string, fallback float64) (float64, error) {
+func parseDecimalEnv(key string, fallback string) (decimal.Decimal, error) {
 	raw := strings.TrimSpace(os.Getenv(key))
 	if raw == "" {
-		return fallback, nil
+		raw = fallback
 	}
 
-	value, err := strconv.ParseFloat(raw, 64)
+	value, err := decimal.NewFromString(raw)
 	if err != nil {
-		return 0, fmt.Errorf("invalid %s: %w", key, err)
+		return decimal.Decimal{}, fmt.Errorf("invalid %s: %w", key, err)
 	}
-	if value < 0 {
-		return 0, fmt.Errorf("%s cannot be negative", key)
-	}
-
-	return value, nil
-}
-
-func parseAmountEnv(key string, fallback float64) (float64, error) {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return fallback, nil
-	}
-
-	value, err := strconv.ParseFloat(raw, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid %s: %w", key, err)
-	}
-	if value < 0 {
-		return 0, fmt.Errorf("%s cannot be negative", key)
+	if value.LessThan(decimal.Zero) {
+		return decimal.Decimal{}, fmt.Errorf("%s cannot be negative", key)
 	}
 
 	return value, nil
