@@ -13,7 +13,7 @@ import (
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/implementations"
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/memory"
 	"github.com/api-sage/ccy-payment-processor/src/internal/config"
-	"github.com/api-sage/ccy-payment-processor/src/internal/usecase"
+	"github.com/api-sage/ccy-payment-processor/src/internal/usecase/services"
 )
 
 func main() {
@@ -38,27 +38,27 @@ func main() {
 	participantBankRepo := memory.NewParticipantBankRepository()
 
 	accountRepo := implementations.NewAccountRepository(db)
-	accountService := usecase.NewAccountService(accountRepo, participantBankRepo, cfg.GreyBankCode)
+	accountService := services.NewAccountService(accountRepo, participantBankRepo, cfg.GreyBankCode)
 	accountController := controller.NewAccountController(accountService)
 
 	userRepo := implementations.NewUserRepository(db)
-	userService := usecase.NewUserService(userRepo)
+	userService := services.NewUserService(userRepo)
 	userController := controller.NewUserController(userService)
 
-	participantBankService := usecase.NewParticipantBankService(participantBankRepo)
+	participantBankService := services.NewParticipantBankService(participantBankRepo)
 	participantBankController := controller.NewParticipantBankController(participantBankService)
 
 	rateRepo := implementations.NewRateRepository(db)
-	rateService := usecase.NewRateService(rateRepo)
+	rateService := services.NewRateService(rateRepo)
 	rateController := controller.NewRateController(rateService)
 
-	chargesService := usecase.NewChargesService(cfg.ChargePercent, cfg.VATPercent)
+	chargesService := services.NewChargesService(cfg.ChargePercent, cfg.VATPercent)
 	chargesController := controller.NewChargesController(chargesService)
 
 	transferRepo := implementations.NewTransferRepository(db)
 	transientAccountRepo := implementations.NewTransientAccountRepository(db)
 	transientAccountTransactionRepo := implementations.NewTransientAccountTransactionRepository(db)
-	transferService := usecase.NewTransferService(
+	transferService := services.NewTransferService(
 		transferRepo,
 		accountRepo,
 		transientAccountRepo,
