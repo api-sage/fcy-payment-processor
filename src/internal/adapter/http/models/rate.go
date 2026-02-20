@@ -39,9 +39,6 @@ func (r GetRateRequest) Validate() error {
 	if toCurrency != "" && len(toCurrency) != 3 {
 		errs = append(errs, "toCurrency must be 3 characters")
 	}
-	if fromCurrency != "" && toCurrency != "" && fromCurrency == toCurrency {
-		errs = append(errs, "fromCurrency and toCurrency cannot be the same")
-	}
 
 	if len(errs) > 0 {
 		return errors.New(strings.Join(errs, "; "))
@@ -84,10 +81,6 @@ func (r GetCcyRatesRequest) Validate() error {
 		errs = append(errs, "toCcy is required")
 	} else if len(toCcy) != 3 {
 		errs = append(errs, "toCcy must be 3 characters")
-	}
-
-	if fromCcy != "" && toCcy != "" && fromCcy == toCcy {
-		errs = append(errs, "fromCcy and toCcy cannot be the same")
 	}
 
 	if len(errs) > 0 {
