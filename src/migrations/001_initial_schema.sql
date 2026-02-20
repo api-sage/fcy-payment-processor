@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS transfers (
     charge_amount NUMERIC(20, 2) NOT NULL DEFAULT 0,
     vat_amount NUMERIC(20, 2) NOT NULL DEFAULT 0,
     narration TEXT,
-    status VARCHAR(16) NOT NULL CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED')),
+    status VARCHAR(16) NOT NULL CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED', 'CLOSED')),
     audit_payload TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

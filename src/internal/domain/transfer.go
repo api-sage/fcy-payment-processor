@@ -8,6 +8,7 @@ const (
 	TransferStatusPending TransferStatus = "PENDING"
 	TransferStatusSuccess TransferStatus = "SUCCESS"
 	TransferStatusFailed  TransferStatus = "FAILED"
+	TransferStatusClosed  TransferStatus = "CLOSED"
 )
 
 type Transfer struct {
