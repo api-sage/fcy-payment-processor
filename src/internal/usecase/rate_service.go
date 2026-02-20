@@ -107,7 +107,7 @@ func (s *RateService) ConvertRate(ctx context.Context, amount string, fromCcy st
 
 	rate, err := s.rateRepo.GetRate(ctx, fromCurrency, toCurrency)
 	if err == nil {
-		usedRate, parseErr := decimal.NewFromString(strings.TrimSpace(rate.SellRate))
+		usedRate, parseErr := decimal.NewFromString(strings.TrimSpace(rate.Rate))
 		if parseErr != nil {
 			return "", "", "", fmt.Errorf("invalid stored sell rate: %w", parseErr)
 		}
@@ -121,7 +121,7 @@ func (s *RateService) ConvertRate(ctx context.Context, amount string, fromCcy st
 		return "", "", "", err
 	}
 
-	inverseValue, parseErr := decimal.NewFromString(strings.TrimSpace(inverseRate.SellRate))
+	inverseValue, parseErr := decimal.NewFromString(strings.TrimSpace(inverseRate.Rate))
 	if parseErr != nil {
 		return "", "", "", fmt.Errorf("invalid stored inverse sell rate: %w", parseErr)
 	}
@@ -180,8 +180,7 @@ func mapRateToResponse(rate domain.Rate) models.RateResponse {
 		ID:           rate.ID,
 		FromCurrency: rate.FromCurrency,
 		ToCurrency:   rate.ToCurrency,
-		SellRate:     rate.SellRate,
-		BuyRate:      rate.BuyRate,
+		Rate:         rate.Rate,
 		RateDate:     rate.RateDate.Format("2006-01-02"),
 		CreatedAt:    rate.CreatedAt.Format(time.RFC3339),
 	}

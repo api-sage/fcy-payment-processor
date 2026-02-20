@@ -281,7 +281,7 @@ func (s *TransferService) resolveRate(ctx context.Context, fromCurrency string, 
 
 	rate, err := s.rateRepo.GetRate(ctx, fromCurrency, toCurrency)
 	if err == nil {
-		value, parseErr := decimal.NewFromString(strings.TrimSpace(rate.SellRate))
+		value, parseErr := decimal.NewFromString(strings.TrimSpace(rate.Rate))
 		if parseErr != nil {
 			return decimal.Zero, time.Time{}, parseErr
 		}
@@ -292,7 +292,7 @@ func (s *TransferService) resolveRate(ctx context.Context, fromCurrency string, 
 	if inverseErr != nil {
 		return decimal.Zero, time.Time{}, err
 	}
-	inverseValue, parseErr := decimal.NewFromString(strings.TrimSpace(inverseRate.SellRate))
+	inverseValue, parseErr := decimal.NewFromString(strings.TrimSpace(inverseRate.Rate))
 	if parseErr != nil {
 		return decimal.Zero, time.Time{}, parseErr
 	}

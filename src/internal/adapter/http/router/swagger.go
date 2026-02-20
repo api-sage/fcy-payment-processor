@@ -248,7 +248,7 @@ const openAPI = `{
         }
       }
     },
-    "/convertfcyamount": {
+    "/convert-fcy-amount": {
       "post": {
         "summary": "Get converted amount by currency pair",
         "security": [
