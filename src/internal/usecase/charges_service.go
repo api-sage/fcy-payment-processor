@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -34,14 +35,16 @@ func (s *ChargesService) GetChargesSummary(ctx context.Context, req models.GetCh
 		"payload": logger.SanitizePayload(req),
 	})
 
-	_ = ctx
 	if err := req.Validate(); err != nil {
 		logger.Error("charges service get charges validation failed", err, nil)
 		return models.ErrorResponse[models.GetChargesResponse]("validation failed", err.Error()), err
 	}
 
-	amount, currency, charge, vat, sumTotal, err := s.GetCharges(req.Amount, req.FromCurrency)
+	amount, currency, charge, vat, sumTotal, err := s.GetCharges(ctx, req.Amount, req.FromCurrency)
 	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			return models.ErrorResponse[models.GetChargesResponse]("Rate not found for currency pair"), err
+		}
 		logger.Error("charges service get charges calculation failed", err, nil)
 		return models.ErrorResponse[models.GetChargesResponse]("failed to get charges", "Unable to fetch charges right now"), err
 	}
@@ -65,7 +68,7 @@ func (s *ChargesService) GetChargesSummary(ctx context.Context, req models.GetCh
 	return models.SuccessResponse("charges fetched successfully", response), nil
 }
 
-func (s *ChargesService) GetCharges(amount string, fromCurrency string) (string, string, string, string, string, error) {
+func (s *ChargesService) GetCharges(ctx context.Context, amount string, fromCurrency string) (string, string, string, string, string, error) {
 	trimmedAmount := strings.TrimSpace(amount)
 	ccy := strings.ToUpper(strings.TrimSpace(fromCurrency))
 
@@ -92,15 +95,60 @@ func (s *ChargesService) GetCharges(amount string, fromCurrency string) (string,
 	chargeMin := decimal.NewFromFloat(s.chargeMin)
 	chargeMax := decimal.NewFromFloat(s.chargeMax)
 
-	chargeValue := amountValue.Mul(chargePercent)
+	calculationAmount := amountValue
+	conversionRate := decimal.NewFromInt(1)
+	if ccy != "USD" {
+		conversionRate, err = s.getUSDToCurrencyRate(ctx, ccy)
+		if err != nil {
+			return "", "", "", "", "", err
+		}
+		calculationAmount = amountValue.Div(conversionRate)
+	}
+
+	chargeValue := calculationAmount.Mul(chargePercent)
 	if chargeValue.LessThan(chargeMin) {
 		chargeValue = chargeMin
 	}
 	if chargeValue.GreaterThan(chargeMax) {
 		chargeValue = chargeMax
 	}
-	vatValue := amountValue.Mul(vatPercent)
+	vatValue := calculationAmount.Mul(vatPercent)
+
+	if ccy != "USD" {
+		chargeValue = chargeValue.Mul(conversionRate)
+		vatValue = vatValue.Mul(conversionRate)
+	}
+
 	totalValue := amountValue.Add(chargeValue).Add(vatValue)
 
 	return amountValue.StringFixed(2), ccy, chargeValue.StringFixed(2), vatValue.StringFixed(2), totalValue.StringFixed(2), nil
+}
+
+func (s *ChargesService) getUSDToCurrencyRate(ctx context.Context, currency string) (decimal.Decimal, error) {
+	rate, err := s.rateRepo.GetRate(ctx, "USD", currency)
+	if err == nil {
+		parsed, parseErr := decimal.NewFromString(strings.TrimSpace(rate.SellRate))
+		if parseErr != nil {
+			return decimal.Decimal{}, fmt.Errorf("invalid stored sell rate: %w", parseErr)
+		}
+		if parsed.LessThanOrEqual(decimal.Zero) {
+			return decimal.Decimal{}, fmt.Errorf("stored sell rate must be greater than zero")
+		}
+		return parsed, nil
+	}
+
+	reverseRate, reverseErr := s.rateRepo.GetRate(ctx, currency, "USD")
+	if reverseErr != nil {
+		return decimal.Decimal{}, err
+	}
+
+	parsedReverse, parseErr := decimal.NewFromString(strings.TrimSpace(reverseRate.SellRate))
+	if parseErr != nil {
+		return decimal.Decimal{}, fmt.Errorf("invalid stored reverse sell rate: %w", parseErr)
+	}
+	if parsedReverse.LessThanOrEqual(decimal.Zero) {
+		return decimal.Decimal{}, fmt.Errorf("stored reverse sell rate must be greater than zero")
+	}
+
+	return decimal.NewFromInt(1).Div(parsedReverse), nil
 }
