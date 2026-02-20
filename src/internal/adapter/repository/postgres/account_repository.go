@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
+	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type AccountRepository struct {
@@ -19,6 +20,12 @@ func NewAccountRepository(db *sql.DB) *AccountRepository {
 }
 
 func (r *AccountRepository) Create(ctx context.Context, account domain.Account) (domain.Account, error) {
+	logger.Info("account repository create", logger.Fields{
+		"customerId":    account.CustomerID,
+		"accountNumber": account.AccountNumber,
+		"currency":      account.Currency,
+	})
+
 	const query = `
 INSERT INTO accounts (
 	customer_id,
@@ -44,17 +51,29 @@ RETURNING id, created_at, updated_at`
 		account.LedgerBalance,
 		account.Status,
 	).Scan(&id, &createdAt, &updatedAt); err != nil {
+		logger.Error("account repository create failed", err, logger.Fields{
+			"customerId":    account.CustomerID,
+			"accountNumber": account.AccountNumber,
+		})
 		return domain.Account{}, fmt.Errorf("create account: %w", err)
 	}
 
 	account.ID = id
 	account.CreatedAt = createdAt
 	account.UpdatedAt = updatedAt
+	logger.Info("account repository create success", logger.Fields{
+		"accountId":     account.ID,
+		"accountNumber": account.AccountNumber,
+	})
 
 	return account, nil
 }
 
 func (r *AccountRepository) GetByAccountNumber(ctx context.Context, accountNumber string) (domain.Account, error) {
+	logger.Info("account repository get by account number", logger.Fields{
+		"accountNumber": accountNumber,
+	})
+
 	const query = `
 SELECT id, customer_id, account_number, currency, available_balance, ledger_balance, status, created_at, updated_at
 FROM accounts
@@ -73,10 +92,21 @@ WHERE account_number = $1`
 		&account.UpdatedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			logger.Info("account repository record not found", logger.Fields{
+				"accountNumber": accountNumber,
+			})
 			return domain.Account{}, domain.ErrRecordNotFound
 		}
+		logger.Error("account repository get failed", err, logger.Fields{
+			"accountNumber": accountNumber,
+		})
 		return domain.Account{}, fmt.Errorf("get account by account number: %w", err)
 	}
+
+	logger.Info("account repository get success", logger.Fields{
+		"accountId":     account.ID,
+		"accountNumber": account.AccountNumber,
+	})
 
 	return account, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
+	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type ParticipantBankRepository struct{}
@@ -13,6 +14,8 @@ func NewParticipantBankRepository() *ParticipantBankRepository {
 }
 
 func (r *ParticipantBankRepository) GetAll(_ context.Context) ([]domain.ParticipantBank, error) {
+	logger.Info("participant bank repository get all", nil)
+
 	banks := []domain.ParticipantBank{
 		{BankName: "Access Bank", BankCode: "044001"},
 		{BankName: "First Bank of Nigeria", BankCode: "011001"},
@@ -25,6 +28,10 @@ func (r *ParticipantBankRepository) GetAll(_ context.Context) ([]domain.Particip
 		{BankName: "Union Bank", BankCode: "032001"},
 		{BankName: "Sterling Bank", BankCode: "232001"},
 	}
+
+	logger.Info("participant bank repository get all success", logger.Fields{
+		"count": len(banks),
+	})
 
 	return banks, nil
 }
