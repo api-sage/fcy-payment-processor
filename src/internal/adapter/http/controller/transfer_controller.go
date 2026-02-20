@@ -11,7 +11,7 @@ import (
 )
 
 type TransferService interface {
-	InternalTransfer(ctx context.Context, req models.InternalTransferRequest) (models.Response[models.InternalTransferResponse], error)
+	TransferFunds(ctx context.Context, req models.InternalTransferRequest) (models.Response[models.InternalTransferResponse], error)
 }
 
 type TransferController struct {
@@ -28,7 +28,7 @@ func (c *TransferController) RegisterRoutes(mux *http.ServeMux, authMiddleware f
 		handler = authMiddleware(handler).ServeHTTP
 	}
 
-	mux.Handle("/transfer", http.HandlerFunc(handler))
+	mux.Handle("/transfer-funds", http.HandlerFunc(handler))
 }
 
 func (c *TransferController) transfer(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +52,7 @@ func (c *TransferController) transfer(w http.ResponseWriter, r *http.Request) {
 	}
 	logRequest(r, req)
 
-	response, err := c.service.InternalTransfer(r.Context(), req)
+	response, err := c.service.TransferFunds(r.Context(), req)
 	if err != nil {
 		logError(r, err, logger.Fields{"message": response.Message})
 		status := http.StatusInternalServerError
