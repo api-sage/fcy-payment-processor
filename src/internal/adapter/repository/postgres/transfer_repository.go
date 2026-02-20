@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -307,9 +308,129 @@ LIMIT 1`
 }
 
 func (r *TransferRepository) ProcessInternalTransfer(ctx context.Context, debitAccountNumber string, debitAmount string, suspenseAccountNumber string, creditAccountNumber string, creditAmount string) error {
-	return fmt.Errorf("not implemented")
+	logger.Info("transfer repository process internal transfer", logger.Fields{
+		"debitAccountNumber":    debitAccountNumber,
+		"debitAmount":           debitAmount,
+		"suspenseAccountNumber": suspenseAccountNumber,
+		"creditAccountNumber":   creditAccountNumber,
+		"creditAmount":          creditAmount,
+	})
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		logger.Error("transfer repository begin tx failed", err, nil)
+		return fmt.Errorf("begin transfer transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	debitSenderQuery := `
+UPDATE accounts
+SET available_balance = available_balance - $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND status = 'ACTIVE'
+  AND available_balance >= $2::numeric`
+	if _, err = execRequiredRows(ctx, tx, debitSenderQuery, debitAccountNumber, debitAmount); err != nil {
+		return err
+	}
+
+	creditSuspenseQuery := `
+UPDATE transient_accounts
+SET available_balance = available_balance + $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1`
+	if _, err = execRequiredRows(ctx, tx, creditSuspenseQuery, suspenseAccountNumber, debitAmount); err != nil {
+		return err
+	}
+
+	debitSuspenseQuery := `
+UPDATE transient_accounts
+SET available_balance = available_balance - $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND available_balance >= $2::numeric`
+	if _, err = execRequiredRows(ctx, tx, debitSuspenseQuery, suspenseAccountNumber, creditAmount); err != nil {
+		return err
+	}
+
+	creditBeneficiaryQuery := `
+UPDATE accounts
+SET available_balance = available_balance + $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND status = 'ACTIVE'`
+	if _, err = execRequiredRows(ctx, tx, creditBeneficiaryQuery, creditAccountNumber, creditAmount); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		logger.Error("transfer repository commit tx failed", err, nil)
+		return fmt.Errorf("commit transfer transaction: %w", err)
+	}
+
+	logger.Info("transfer repository process internal transfer success", logger.Fields{
+		"debitAccountNumber":  debitAccountNumber,
+		"creditAccountNumber": creditAccountNumber,
+	})
+	return nil
 }
 
 func (r *TransferRepository) UpdateStatus(ctx context.Context, transferID string, status domain.TransferStatus) error {
-	return fmt.Errorf("not implemented")
+	logger.Info("transfer repository update status", logger.Fields{
+		"transferId": transferID,
+		"status":     status,
+	})
+
+	const query = `
+UPDATE transfers
+SET status = $2,
+    updated_at = NOW(),
+    processed_at = CASE
+        WHEN $2 IN ('SUCCESS', 'FAILED', 'CLOSED') THEN NOW()
+        ELSE processed_at
+    END
+WHERE id = $1`
+
+	result, err := r.db.ExecContext(ctx, query, transferID, status)
+	if err != nil {
+		logger.Error("transfer repository update status failed", err, logger.Fields{
+			"transferId": transferID,
+			"status":     status,
+		})
+		return fmt.Errorf("update transfer status: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update transfer status rows affected: %w", err)
+	}
+	if rows == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	logger.Info("transfer repository update status success", logger.Fields{
+		"transferId": transferID,
+		"status":     status,
+	})
+	return nil
+}
+
+func execRequiredRows(ctx context.Context, tx *sql.Tx, query string, args ...any) (int64, error) {
+	result, err := tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("execute transaction statement: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("read rows affected: %w", err)
+	}
+	if rows == 0 {
+		return 0, errors.New("transaction posting failed: record not found, inactive, or insufficient balance")
+	}
+	return rows, nil
 }
