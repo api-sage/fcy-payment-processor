@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type RateService interface {
-	GetRates(ctx context.Context) (models.Response[[]models.RateResponse], error)
-	GetRate(ctx context.Context, req models.GetRateRequest) (models.Response[models.RateResponse], error)
-	GetCcyRates(ctx context.Context, req models.GetCcyRatesRequest) (models.Response[models.GetCcyRatesResponse], error)
+	GetRates(ctx context.Context) (commons.Response[[]models.RateResponse], error)
+	GetRate(ctx context.Context, req models.GetRateRequest) (commons.Response[models.RateResponse], error)
+	GetCcyRates(ctx context.Context, req models.GetCcyRatesRequest) (commons.Response[models.GetCcyRatesResponse], error)
 }
 
 type RateController struct {
@@ -45,7 +46,7 @@ func (c *RateController) getRates(w http.ResponseWriter, r *http.Request) {
 	logRequest(r, nil)
 
 	if r.Method != http.MethodGet {
-		response := models.ErrorResponse[[]models.RateResponse]("method not allowed")
+		response := commons.ErrorResponse[[]models.RateResponse]("method not allowed")
 		writeJSON(w, http.StatusMethodNotAllowed, response)
 		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
@@ -68,7 +69,7 @@ func (c *RateController) getRate(w http.ResponseWriter, r *http.Request) {
 	logRequest(r, nil)
 
 	if r.Method != http.MethodPost {
-		response := models.ErrorResponse[models.RateResponse]("method not allowed")
+		response := commons.ErrorResponse[models.RateResponse]("method not allowed")
 		writeJSON(w, http.StatusMethodNotAllowed, response)
 		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
@@ -77,7 +78,7 @@ func (c *RateController) getRate(w http.ResponseWriter, r *http.Request) {
 	var req models.GetRateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logError(r, err, nil)
-		response := models.ErrorResponse[models.RateResponse]("invalid request body", err.Error())
+		response := commons.ErrorResponse[models.RateResponse]("invalid request body", err.Error())
 		writeJSON(w, http.StatusBadRequest, response)
 		logResponse(r, http.StatusBadRequest, response, start)
 		return
@@ -108,7 +109,7 @@ func (c *RateController) getCcyRates(w http.ResponseWriter, r *http.Request) {
 	logRequest(r, nil)
 
 	if r.Method != http.MethodPost {
-		response := models.ErrorResponse[models.GetCcyRatesResponse]("method not allowed")
+		response := commons.ErrorResponse[models.GetCcyRatesResponse]("method not allowed")
 		writeJSON(w, http.StatusMethodNotAllowed, response)
 		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
@@ -117,7 +118,7 @@ func (c *RateController) getCcyRates(w http.ResponseWriter, r *http.Request) {
 	var req models.GetCcyRatesRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logError(r, err, nil)
-		response := models.ErrorResponse[models.GetCcyRatesResponse]("invalid request body", err.Error())
+		response := commons.ErrorResponse[models.GetCcyRatesResponse]("invalid request body", err.Error())
 		writeJSON(w, http.StatusBadRequest, response)
 		logResponse(r, http.StatusBadRequest, response, start)
 		return

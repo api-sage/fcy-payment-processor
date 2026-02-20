@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type ChargesService interface {
-	GetChargesSummary(ctx context.Context, req models.GetChargesRequest) (models.Response[models.GetChargesResponse], error)
+	GetChargesSummary(ctx context.Context, req models.GetChargesRequest) (commons.Response[models.GetChargesResponse], error)
 }
 
 type ChargesController struct {
@@ -34,7 +35,7 @@ func (c *ChargesController) getCharges(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
 	if r.Method != http.MethodGet {
-		response := models.ErrorResponse[models.GetChargesResponse]("method not allowed")
+		response := commons.ErrorResponse[models.GetChargesResponse]("method not allowed")
 		writeJSON(w, http.StatusMethodNotAllowed, response)
 		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return

@@ -9,19 +9,20 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
-	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/interfaces"
+	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/repo_interfaces"
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type AccountService struct {
-	accountRepo         interfaces.AccountRepository
+	accountRepo         repo_interfaces.AccountRepository
 	participantBankRepo domain.ParticipantBankRepository
 	greyBankCode        string
 }
 
 func NewAccountService(
-	accountRepo interfaces.AccountRepository,
+	accountRepo repo_interfaces.AccountRepository,
 	participantBankRepo domain.ParticipantBankRepository,
 	greyBankCode string,
 ) *AccountService {
@@ -32,20 +33,20 @@ func NewAccountService(
 	}
 }
 
-func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAccountRequest) (models.Response[models.CreateAccountResponse], error) {
+func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAccountRequest) (commons.Response[models.CreateAccountResponse], error) {
 	logger.Info("account service create account request", logger.Fields{
 		"payload": logger.SanitizePayload(req),
 	})
 
 	if err := req.Validate(); err != nil {
 		logger.Error("account service create account validation failed", err, nil)
-		return models.ErrorResponse[models.CreateAccountResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.CreateAccountResponse]("validation failed", err.Error()), err
 	}
 
 	balance, err := parseBalance(req.InitialDeposit)
 	if err != nil {
 		logger.Error("account service create account parse balance failed", err, nil)
-		return models.ErrorResponse[models.CreateAccountResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.CreateAccountResponse]("validation failed", err.Error()), err
 	}
 
 	account := domain.Account{
@@ -62,7 +63,7 @@ func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAcc
 		logger.Error("account service create account repository failed", err, logger.Fields{
 			"customerId": account.CustomerID,
 		})
-		return models.ErrorResponse[models.CreateAccountResponse]("failed to create account", "Unable to create account right now"), err
+		return commons.ErrorResponse[models.CreateAccountResponse]("failed to create account", "Unable to create account right now"), err
 	}
 
 	response := models.CreateAccountResponse{
@@ -83,10 +84,10 @@ func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAcc
 		"customerId":    response.CustomerID,
 	})
 
-	return models.SuccessResponse("account created successfully", response), nil
+	return commons.SuccessResponse("account created successfully", response), nil
 }
 
-func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, bankCode string) (models.Response[models.GetAccountResponse], error) {
+func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, bankCode string) (commons.Response[models.GetAccountResponse], error) {
 	logger.Info("account service get account request", logger.Fields{
 		"accountNumber": accountNumber,
 		"bankCode":      bankCode,
@@ -96,16 +97,16 @@ func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, b
 	bankCode = strings.TrimSpace(bankCode)
 
 	if accountNumber == "" {
-		return models.ErrorResponse[models.GetAccountResponse]("validation failed", "accountNumber is required"), fmt.Errorf("accountNumber is required")
+		return commons.ErrorResponse[models.GetAccountResponse]("validation failed", "accountNumber is required"), fmt.Errorf("accountNumber is required")
 	}
 	if !isTenDigitAccountNumber(accountNumber) {
-		return models.ErrorResponse[models.GetAccountResponse]("validation failed", "accountNumber must be exactly 10 digits"), fmt.Errorf("accountNumber must be exactly 10 digits")
+		return commons.ErrorResponse[models.GetAccountResponse]("validation failed", "accountNumber must be exactly 10 digits"), fmt.Errorf("accountNumber must be exactly 10 digits")
 	}
 	if bankCode == "" {
-		return models.ErrorResponse[models.GetAccountResponse]("validation failed", "bankCode is required"), fmt.Errorf("bankCode is required")
+		return commons.ErrorResponse[models.GetAccountResponse]("validation failed", "bankCode is required"), fmt.Errorf("bankCode is required")
 	}
 	if !isSixDigitBankCode(bankCode) {
-		return models.ErrorResponse[models.GetAccountResponse]("validation failed", "bankCode must be exactly 6 digits"), fmt.Errorf("bankCode must be exactly 6 digits")
+		return commons.ErrorResponse[models.GetAccountResponse]("validation failed", "bankCode must be exactly 6 digits"), fmt.Errorf("bankCode must be exactly 6 digits")
 	}
 
 	if bankCode != s.greyBankCode {
@@ -114,7 +115,7 @@ func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, b
 			logger.Error("account service get external account banks lookup failed", err, logger.Fields{
 				"bankCode": bankCode,
 			})
-			return models.ErrorResponse[models.GetAccountResponse]("failed to get account", "Unable to fetch account right now"), err
+			return commons.ErrorResponse[models.GetAccountResponse]("failed to get account", "Unable to fetch account right now"), err
 		}
 
 		var mappedBankName string
@@ -125,7 +126,7 @@ func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, b
 			}
 		}
 		if mappedBankName == "" {
-			return models.ErrorResponse[models.GetAccountResponse]("validation failed", "bankCode is not supported"), fmt.Errorf("bankCode is not supported")
+			return commons.ErrorResponse[models.GetAccountResponse]("validation failed", "bankCode is not supported"), fmt.Errorf("bankCode is not supported")
 		}
 
 		response := models.GetAccountResponse{
@@ -141,7 +142,7 @@ func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, b
 			"bankName":      mappedBankName,
 		})
 
-		return models.SuccessResponse("external account fetched successfully", response), nil
+		return commons.SuccessResponse("external account fetched successfully", response), nil
 	}
 
 	account, err := s.accountRepo.GetByAccountNumber(ctx, accountNumber)
@@ -151,9 +152,9 @@ func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, b
 			"bankCode":      bankCode,
 		})
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			return models.ErrorResponse[models.GetAccountResponse]("Account not found"), err
+			return commons.ErrorResponse[models.GetAccountResponse]("Account not found"), err
 		}
-		return models.ErrorResponse[models.GetAccountResponse]("failed to get account", "Unable to fetch account right now"), err
+		return commons.ErrorResponse[models.GetAccountResponse]("failed to get account", "Unable to fetch account right now"), err
 	}
 
 	response := models.GetAccountResponse{
@@ -177,17 +178,17 @@ func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, b
 		"customerId":    response.CustomerID,
 	})
 
-	return models.SuccessResponse("account fetched successfully", response), nil
+	return commons.SuccessResponse("account fetched successfully", response), nil
 }
 
-func (s *AccountService) DepositFunds(ctx context.Context, req models.DepositFundsRequest) (models.Response[models.DepositFundsResponse], error) {
+func (s *AccountService) DepositFunds(ctx context.Context, req models.DepositFundsRequest) (commons.Response[models.DepositFundsResponse], error) {
 	logger.Info("account service deposit funds request", logger.Fields{
 		"payload": logger.SanitizePayload(req),
 	})
 
 	if err := req.Validate(); err != nil {
 		logger.Error("account service deposit funds validation failed", err, nil)
-		return models.ErrorResponse[models.DepositFundsResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.DepositFundsResponse]("validation failed", err.Error()), err
 	}
 
 	accountNumber := strings.TrimSpace(req.AccountNumber)
@@ -199,9 +200,9 @@ func (s *AccountService) DepositFunds(ctx context.Context, req models.DepositFun
 			"amount":        amount,
 		})
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			return models.ErrorResponse[models.DepositFundsResponse]("Account not found"), err
+			return commons.ErrorResponse[models.DepositFundsResponse]("Account not found"), err
 		}
-		return models.ErrorResponse[models.DepositFundsResponse]("failed to deposit funds", "Unable to deposit funds right now"), err
+		return commons.ErrorResponse[models.DepositFundsResponse]("failed to deposit funds", "Unable to deposit funds right now"), err
 	}
 
 	account, err := s.accountRepo.GetByAccountNumber(ctx, accountNumber)
@@ -210,9 +211,9 @@ func (s *AccountService) DepositFunds(ctx context.Context, req models.DepositFun
 			"accountNumber": accountNumber,
 		})
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			return models.ErrorResponse[models.DepositFundsResponse]("Account not found"), err
+			return commons.ErrorResponse[models.DepositFundsResponse]("Account not found"), err
 		}
-		return models.ErrorResponse[models.DepositFundsResponse]("failed to fetch account", "Unable to fetch account right now"), err
+		return commons.ErrorResponse[models.DepositFundsResponse]("failed to fetch account", "Unable to fetch account right now"), err
 	}
 
 	response := models.DepositFundsResponse{
@@ -229,7 +230,7 @@ func (s *AccountService) DepositFunds(ctx context.Context, req models.DepositFun
 		"availableBalance": response.AvailableBalance,
 	})
 
-	return models.SuccessResponse("funds deposited successfully", response), nil
+	return commons.SuccessResponse("funds deposited successfully", response), nil
 }
 
 func parseBalance(raw string) (string, error) {

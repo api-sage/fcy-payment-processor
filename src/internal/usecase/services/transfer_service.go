@@ -10,21 +10,23 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
-	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/interfaces"
+	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/repo_interfaces"
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
+	"github.com/api-sage/ccy-payment-processor/src/internal/usecase/service_interfaces"
 	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
 )
 
 type TransferService struct {
-	transferRepo                    interfaces.TransferRepository
-	accountRepo                     interfaces.AccountRepository
-	transientAccountRepo            interfaces.TransientAccountRepository
-	transientAccountTransactionRepo interfaces.TransientAccountTransactionRepository
-	rateRepo                        interfaces.RateRepository
-	rateService                     *RateService
-	chargeService                   *ChargesService
+	transferRepo                    repo_interfaces.TransferRepository
+	accountRepo                     repo_interfaces.AccountRepository
+	transientAccountRepo            repo_interfaces.TransientAccountRepository
+	transientAccountTransactionRepo repo_interfaces.TransientAccountTransactionRepository
+	rateRepo                        repo_interfaces.RateRepository
+	rateService                     service_interfaces.RateService
+	chargeService                   service_interfaces.ChargesService
 	chargePercent                   float64
 	vatPercent                      float64
 	greyBankCode                    string
@@ -34,13 +36,13 @@ type TransferService struct {
 }
 
 func NewTransferService(
-	transferRepo interfaces.TransferRepository,
-	accountRepo interfaces.AccountRepository,
-	transientAccountRepo interfaces.TransientAccountRepository,
-	transientAccountTransactionRepo interfaces.TransientAccountTransactionRepository,
-	rateRepo interfaces.RateRepository,
-	rateService *RateService,
-	chargeService *ChargesService,
+	transferRepo repo_interfaces.TransferRepository,
+	accountRepo repo_interfaces.AccountRepository,
+	transientAccountRepo repo_interfaces.TransientAccountRepository,
+	transientAccountTransactionRepo repo_interfaces.TransientAccountTransactionRepository,
+	rateRepo repo_interfaces.RateRepository,
+	rateService service_interfaces.RateService,
+	chargeService service_interfaces.ChargesService,
 	chargePercent float64,
 	vatPercent float64,
 	greyBankCode string,
@@ -67,26 +69,26 @@ func NewTransferService(
 
 var transferRefCounter uint32
 
-func (s *TransferService) TransferFunds(ctx context.Context, req models.InternalTransferRequest) (models.Response[models.InternalTransferResponse], error) {
+func (s *TransferService) TransferFunds(ctx context.Context, req models.InternalTransferRequest) (commons.Response[models.InternalTransferResponse], error) {
 	logger.Info("transfer service internal transfer request", logger.Fields{
 		"payload": logger.SanitizePayload(req),
 	})
 
 	if err := req.Validate(); err != nil {
-		return models.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
 	}
 
 	beneficiaryBankCode := strings.TrimSpace(req.BeneficiaryBankCode)
 	if beneficiaryBankCode != s.greyBankCode {
 		err := fmt.Errorf("beneficiaryBankCode is not internal")
-		return models.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
 	}
 
 	debitAccountNumber := strings.TrimSpace(req.DebitAccountNumber)
 	creditAccountNumber := strings.TrimSpace(req.CreditAccountNumber)
 	if debitAccountNumber == creditAccountNumber {
 		err := fmt.Errorf("debitAccountNumber and creditAccountNumber cannot be the same")
-		return models.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
 	}
 
 	debitCurrency := strings.ToUpper(strings.TrimSpace(req.DebitCurrency))
@@ -96,69 +98,69 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	debitAccount, err := s.accountRepo.GetByAccountNumber(ctx, debitAccountNumber)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			return models.ErrorResponse[models.InternalTransferResponse]("Debit account not found"), err
+			return commons.ErrorResponse[models.InternalTransferResponse]("Debit account not found"), err
 		}
-		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 	}
 	creditAccount, err := s.accountRepo.GetByAccountNumber(ctx, creditAccountNumber)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			return models.ErrorResponse[models.InternalTransferResponse]("Credit account not found"), err
+			return commons.ErrorResponse[models.InternalTransferResponse]("Credit account not found"), err
 		}
-		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 	}
 
 	if debitAccount.Status != domain.AccountStatusActive {
 		err := fmt.Errorf("debit account is not active")
-		return models.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
 	}
 	if creditAccount.Status != domain.AccountStatusActive {
 		err := fmt.Errorf("credit account is not active")
-		return models.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
 	}
 	if !strings.EqualFold(strings.TrimSpace(debitAccount.Currency), debitCurrency) {
 		err := fmt.Errorf("debit currency does not match debit account currency")
-		return models.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
 	}
 	if !strings.EqualFold(strings.TrimSpace(creditAccount.Currency), creditCurrency) {
 		err := fmt.Errorf("credit currency does not match credit account currency")
-		return models.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
 	}
 
 	convertedAmount, rateUsed, _, err := s.rateService.ConvertRate(ctx, debitAmount.String(), debitCurrency, creditCurrency)
 	_, _, charge, vat, totalDebitAmount, err := s.chargeService.GetCharges(debitAmount.String(), debitCurrency)
 	if err != nil {
-		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 	}
 
 	creditAmount, err := decimal.NewFromString(strings.TrimSpace(convertedAmount))
 	if err != nil {
-		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 	}
 
 	chargeAmount, err := decimal.NewFromString(strings.TrimSpace(charge))
 	if err != nil {
-		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 	}
 
 	vatAmount, err := decimal.NewFromString(strings.TrimSpace(vat))
 	if err != nil {
-		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 	}
 
 	sumTotal, err := decimal.NewFromString(strings.TrimSpace(totalDebitAmount))
 	if err != nil {
-		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 	}
 
 	debitAvailable, parseErr := decimal.NewFromString(strings.TrimSpace(debitAccount.AvailableBalance))
 	if parseErr != nil {
-		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), parseErr
+		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), parseErr
 	}
 
 	if debitAvailable.LessThan(sumTotal) {
 		err := domain.ErrInsufficientBalance
-		return models.ErrorResponse[models.InternalTransferResponse]("Insufficient balance"), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("Insufficient balance", err.Error()), err
 	}
 
 	narration := strings.TrimSpace(req.Narration)
@@ -191,11 +193,11 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 			break
 		}
 		if !isUniqueViolation(err) {
-			return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+			return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 		}
 	}
 	if err != nil {
-		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 	}
 
 	postingErr := s.transferRepo.ProcessInternalTransfer(
@@ -209,7 +211,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	)
 	if postingErr != nil {
 		_ = s.transferRepo.UpdateStatus(ctx, createdTransfer.ID, domain.TransferStatusFailed)
-		return models.ErrorResponse[models.InternalTransferResponse]("transfer failed", "Unable to complete transfer posting"), postingErr
+		return commons.ErrorResponse[models.InternalTransferResponse]("transfer failed", "Unable to complete transfer posting"), postingErr
 	}
 
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
@@ -236,7 +238,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 			"transferId": createdTransfer.ID,
 		})
 		response := mapTransferToResponse(createdTransfer, sumTotal.StringFixed(2))
-		return models.SuccessResponse("Transaction successful. Settlement pending", response), nil
+		return commons.SuccessResponse("Transaction successful. Settlement pending", response), nil
 	}
 
 	settlementErr := s.transientAccountRepo.SettleFromSuspenseToFees(
@@ -254,7 +256,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 			"transferId": createdTransfer.ID,
 		})
 		response := mapTransferToResponse(createdTransfer, sumTotal.StringFixed(2))
-		return models.SuccessResponse("Transaction successful. Settlement pending", response), nil
+		return commons.SuccessResponse("Transaction successful. Settlement pending", response), nil
 	}
 
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
@@ -290,7 +292,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	createdTransfer.Status = domain.TransferStatusClosed
 
 	response := mapTransferToResponse(createdTransfer, sumTotal.StringFixed(2))
-	return models.SuccessResponse("Transaction successful", response), nil
+	return commons.SuccessResponse("Transaction successful", response), nil
 }
 
 func (s *TransferService) convertFeesToUSD(

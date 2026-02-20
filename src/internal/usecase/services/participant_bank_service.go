@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
@@ -16,13 +17,13 @@ func NewParticipantBankService(participantBankRepo domain.ParticipantBankReposit
 	return &ParticipantBankService{participantBankRepo: participantBankRepo}
 }
 
-func (s *ParticipantBankService) GetParticipantBanks(ctx context.Context) (models.Response[[]models.ParticipantBankResponse], error) {
+func (s *ParticipantBankService) GetParticipantBanks(ctx context.Context) (commons.Response[[]models.ParticipantBankResponse], error) {
 	logger.Info("participant bank service get participant banks request", nil)
 
 	banks, err := s.participantBankRepo.GetAll(ctx)
 	if err != nil {
 		logger.Error("participant bank service get participant banks failed", err, nil)
-		return models.ErrorResponse[[]models.ParticipantBankResponse]("failed to fetch participant banks", "Unable to fetch participant banks right now"), err
+		return commons.ErrorResponse[[]models.ParticipantBankResponse]("failed to fetch participant banks", "Unable to fetch participant banks right now"), err
 	}
 
 	resp := make([]models.ParticipantBankResponse, 0, len(banks))
@@ -37,5 +38,5 @@ func (s *ParticipantBankService) GetParticipantBanks(ctx context.Context) (model
 		"count": len(resp),
 	})
 
-	return models.SuccessResponse("participant banks fetched successfully", resp), nil
+	return commons.SuccessResponse("participant banks fetched successfully", resp), nil
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 	"golang.org/x/crypto/bcrypt"
@@ -21,20 +22,20 @@ func NewUserService(userRepo domain.UserRepository) *UserService {
 	return &UserService{userRepo: userRepo}
 }
 
-func (s *UserService) CreateUser(ctx context.Context, req models.CreateUserRequest) (models.Response[models.CreateUserResponse], error) {
+func (s *UserService) CreateUser(ctx context.Context, req models.CreateUserRequest) (commons.Response[models.CreateUserResponse], error) {
 	logger.Info("user service create user request", logger.Fields{
 		"payload": logger.SanitizePayload(req),
 	})
 
 	if err := req.Validate(); err != nil {
 		logger.Error("user service create user validation failed", err, nil)
-		return models.ErrorResponse[models.CreateUserResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.CreateUserResponse]("validation failed", err.Error()), err
 	}
 
 	dob, err := time.Parse("2006-01-02", strings.TrimSpace(req.DOB))
 	if err != nil {
 		logger.Error("user service create user invalid dob", err, nil)
-		return models.ErrorResponse[models.CreateUserResponse]("validation failed", "dob must be in YYYY-MM-DD format"), err
+		return commons.ErrorResponse[models.CreateUserResponse]("validation failed", "dob must be in YYYY-MM-DD format"), err
 	}
 
 	var middleName *string
@@ -45,7 +46,7 @@ func (s *UserService) CreateUser(ctx context.Context, req models.CreateUserReque
 	hashedPin, err := hashTransactionPin(strings.TrimSpace(req.TransactionPin))
 	if err != nil {
 		logger.Error("user service create user hash pin failed", err, nil)
-		return models.ErrorResponse[models.CreateUserResponse]("failed to create user", "failed to hash transaction pin"), err
+		return commons.ErrorResponse[models.CreateUserResponse]("failed to create user", "failed to hash transaction pin"), err
 	}
 
 	user := domain.User{
@@ -66,7 +67,7 @@ func (s *UserService) CreateUser(ctx context.Context, req models.CreateUserReque
 		logger.Error("user service create user repository failed", err, logger.Fields{
 			"customerId": user.CustomerID,
 		})
-		return models.ErrorResponse[models.CreateUserResponse]("failed to create user", "Unable to create user right now"), err
+		return commons.ErrorResponse[models.CreateUserResponse]("failed to create user", "Unable to create user right now"), err
 	}
 
 	response := models.CreateUserResponse{
@@ -84,16 +85,16 @@ func (s *UserService) CreateUser(ctx context.Context, req models.CreateUserReque
 		"transaction": "create",
 	})
 
-	return models.SuccessResponse("user created successfully", response), nil
+	return commons.SuccessResponse("user created successfully", response), nil
 }
 
-func (s *UserService) GetUser(ctx context.Context, id string) (models.Response[models.GetUserResponse], error) {
+func (s *UserService) GetUser(ctx context.Context, id string) (commons.Response[models.GetUserResponse], error) {
 	logger.Info("user service get user request", logger.Fields{
 		"userId": id,
 	})
 
 	if strings.TrimSpace(id) == "" {
-		return models.ErrorResponse[models.GetUserResponse]("validation failed", "id is required"), fmt.Errorf("id is required")
+		return commons.ErrorResponse[models.GetUserResponse]("validation failed", "id is required"), fmt.Errorf("id is required")
 	}
 
 	user, err := s.userRepo.GetByID(ctx, id)
@@ -102,9 +103,9 @@ func (s *UserService) GetUser(ctx context.Context, id string) (models.Response[m
 			"userId": id,
 		})
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			return models.ErrorResponse[models.GetUserResponse]("User not found"), err
+			return commons.ErrorResponse[models.GetUserResponse]("User not found"), err
 		}
-		return models.ErrorResponse[models.GetUserResponse]("failed to get user", "Unable to fetch user right now"), err
+		return commons.ErrorResponse[models.GetUserResponse]("failed to get user", "Unable to fetch user right now"), err
 	}
 
 	response := models.GetUserResponse{
@@ -128,10 +129,10 @@ func (s *UserService) GetUser(ctx context.Context, id string) (models.Response[m
 		"customerId": response.CustomerID,
 	})
 
-	return models.SuccessResponse("user fetched successfully", response), nil
+	return commons.SuccessResponse("user fetched successfully", response), nil
 }
 
-func (s *UserService) VerifyUserPin(ctx context.Context, customerID string, pin string) (models.Response[models.VerifyUserPinResponse], error) {
+func (s *UserService) VerifyUserPin(ctx context.Context, customerID string, pin string) (commons.Response[models.VerifyUserPinResponse], error) {
 	logger.Info("user service verify pin request", logger.Fields{
 		"payload": logger.SanitizePayload(map[string]string{
 			"customerId": customerID,
@@ -143,10 +144,10 @@ func (s *UserService) VerifyUserPin(ctx context.Context, customerID string, pin 
 	pin = strings.TrimSpace(pin)
 
 	if customerID == "" {
-		return models.ErrorResponse[models.VerifyUserPinResponse]("validation failed", "customerId is required"), fmt.Errorf("customerId is required")
+		return commons.ErrorResponse[models.VerifyUserPinResponse]("validation failed", "customerId is required"), fmt.Errorf("customerId is required")
 	}
 	if pin == "" {
-		return models.ErrorResponse[models.VerifyUserPinResponse]("validation failed", "pin is required"), fmt.Errorf("pin is required")
+		return commons.ErrorResponse[models.VerifyUserPinResponse]("validation failed", "pin is required"), fmt.Errorf("pin is required")
 	}
 
 	storedPinHash, err := s.userRepo.GetTransactionPinHashByCustomerID(ctx, customerID)
@@ -155,9 +156,9 @@ func (s *UserService) VerifyUserPin(ctx context.Context, customerID string, pin 
 			"customerId": customerID,
 		})
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			return models.ErrorResponse[models.VerifyUserPinResponse]("User not found"), err
+			return commons.ErrorResponse[models.VerifyUserPinResponse]("User not found"), err
 		}
-		return models.ErrorResponse[models.VerifyUserPinResponse]("failed to verify pin", "Unable to verify pin right now"), err
+		return commons.ErrorResponse[models.VerifyUserPinResponse]("failed to verify pin", "Unable to verify pin right now"), err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(storedPinHash), []byte(pin)); err != nil {
@@ -165,13 +166,13 @@ func (s *UserService) VerifyUserPin(ctx context.Context, customerID string, pin 
 			logger.Info("user service verify pin mismatch", logger.Fields{
 				"customerId": customerID,
 			})
-			return models.ErrorResponse[models.VerifyUserPinResponse]("invalid pin", "provided pin does not match"), fmt.Errorf("invalid pin")
+			return commons.ErrorResponse[models.VerifyUserPinResponse]("invalid pin", "provided pin does not match"), fmt.Errorf("invalid pin")
 		}
 		wrappedErr := fmt.Errorf("verify user pin: %w", err)
 		logger.Error("user service verify pin compare failed", wrappedErr, logger.Fields{
 			"customerId": customerID,
 		})
-		return models.ErrorResponse[models.VerifyUserPinResponse]("failed to verify pin", "Unable to verify pin right now"), wrappedErr
+		return commons.ErrorResponse[models.VerifyUserPinResponse]("failed to verify pin", "Unable to verify pin right now"), wrappedErr
 	}
 
 	response := models.VerifyUserPinResponse{
@@ -184,7 +185,7 @@ func (s *UserService) VerifyUserPin(ctx context.Context, customerID string, pin 
 		"isValidPin": true,
 	})
 
-	return models.SuccessResponse("pin verified successfully", response), nil
+	return commons.SuccessResponse("pin verified successfully", response), nil
 }
 
 func generateCustomerID() string {

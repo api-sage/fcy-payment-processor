@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type TransferService interface {
-	TransferFunds(ctx context.Context, req models.InternalTransferRequest) (models.Response[models.InternalTransferResponse], error)
+	TransferFunds(ctx context.Context, req models.InternalTransferRequest) (commons.Response[models.InternalTransferResponse], error)
 }
 
 type TransferController struct {
@@ -36,7 +37,7 @@ func (c *TransferController) transfer(w http.ResponseWriter, r *http.Request) {
 	logRequest(r, nil)
 
 	if r.Method != http.MethodPost {
-		response := models.ErrorResponse[models.InternalTransferResponse]("method not allowed")
+		response := commons.ErrorResponse[models.InternalTransferResponse]("method not allowed")
 		writeJSON(w, http.StatusMethodNotAllowed, response)
 		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
@@ -45,7 +46,7 @@ func (c *TransferController) transfer(w http.ResponseWriter, r *http.Request) {
 	var req models.InternalTransferRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logError(r, err, nil)
-		response := models.ErrorResponse[models.InternalTransferResponse]("invalid request body", err.Error())
+		response := commons.ErrorResponse[models.InternalTransferResponse]("invalid request body", err.Error())
 		writeJSON(w, http.StatusBadRequest, response)
 		logResponse(r, http.StatusBadRequest, response, start)
 		return
