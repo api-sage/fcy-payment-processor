@@ -213,3 +213,55 @@ WHERE account_number = $1
 	})
 	return nil
 }
+
+func (r *AccountRepository) DepositFunds(ctx context.Context, accountNumber string, amount string) error {
+	logger.Info("account repository deposit funds", logger.Fields{
+		"accountNumber": accountNumber,
+		"amount":        amount,
+	})
+
+	const query = `
+UPDATE accounts
+SET available_balance = available_balance + $2::numeric,
+    ledger_balance = ledger_balance + $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND status = 'ACTIVE'`
+
+	result, err := r.db.ExecContext(ctx, query, accountNumber, amount)
+	if err != nil {
+		logger.Error("account repository deposit funds failed", err, logger.Fields{
+			"accountNumber": accountNumber,
+			"amount":        amount,
+		})
+		return fmt.Errorf("deposit funds: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		logger.Error("account repository deposit funds rows affected failed", err, logger.Fields{
+			"accountNumber": accountNumber,
+		})
+		return fmt.Errorf("deposit funds rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		account, getErr := r.GetByAccountNumber(ctx, accountNumber)
+		if getErr != nil {
+			if errors.Is(getErr, domain.ErrRecordNotFound) {
+				return domain.ErrRecordNotFound
+			}
+			return getErr
+		}
+		if account.Status != domain.AccountStatusActive {
+			return fmt.Errorf("account is not active")
+		}
+		return domain.ErrRecordNotFound
+	}
+
+	logger.Info("account repository deposit funds success", logger.Fields{
+		"accountNumber": accountNumber,
+		"amount":        amount,
+	})
+	return nil
+}
