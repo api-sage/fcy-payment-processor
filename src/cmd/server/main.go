@@ -52,7 +52,7 @@ func main() {
 	rateService := usecase.NewRateService(rateRepo)
 	rateController := controller.NewRateController(rateService)
 
-	chargesService := usecase.NewChargesService(cfg.ChargePercent, cfg.VATPercent, cfg.ChargeMin, cfg.ChargeMax)
+	chargesService := usecase.NewChargesService(rateRepo, cfg.ChargePercent, cfg.VATPercent, cfg.ChargeMin, cfg.ChargeMax)
 	chargesController := controller.NewChargesController(chargesService)
 
 	mux := router.New(accountController, userController, participantBankController, rateController, chargesController, middleware.BasicAuth(cfg.ChannelID, cfg.ChannelKey))
