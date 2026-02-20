@@ -12,7 +12,7 @@ const defaultConnectionString = "Host=localhost;Port=5432;Database=payment_syste
 const defaultChannelID = "GreyApp"
 const defaultChannelKey = "GreyHoundKey001"
 const defaultGreyBankCode = "100100"
-const defaultChargePercent = 2.0
+const defaultChargePercent = 1.0
 const defaultVATPercent = 7.5
 const defaultInternalTransientAccountNumber = "0123456890"
 const defaultInternalChargesAccountNumber = "0123445521"
