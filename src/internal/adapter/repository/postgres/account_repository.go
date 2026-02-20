@@ -164,5 +164,52 @@ WHERE account_number = $1
 }
 
 func (r *AccountRepository) CreditInternalAccount(ctx context.Context, accountNumber string, amount string) error {
-	return fmt.Errorf("not implemented")
+	logger.Info("account repository credit internal account", logger.Fields{
+		"accountNumber": accountNumber,
+		"amount":        amount,
+	})
+
+	const query = `
+UPDATE accounts
+SET available_balance = available_balance + $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND status = 'ACTIVE'`
+
+	result, err := r.db.ExecContext(ctx, query, accountNumber, amount)
+	if err != nil {
+		logger.Error("account repository credit internal account failed", err, logger.Fields{
+			"accountNumber": accountNumber,
+			"amount":        amount,
+		})
+		return fmt.Errorf("credit internal account: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		logger.Error("account repository credit internal account rows affected failed", err, logger.Fields{
+			"accountNumber": accountNumber,
+		})
+		return fmt.Errorf("credit internal account rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		account, getErr := r.GetByAccountNumber(ctx, accountNumber)
+		if getErr != nil {
+			if errors.Is(getErr, domain.ErrRecordNotFound) {
+				return domain.ErrRecordNotFound
+			}
+			return getErr
+		}
+		if account.Status != domain.AccountStatusActive {
+			return fmt.Errorf("account is not active")
+		}
+		return domain.ErrRecordNotFound
+	}
+
+	logger.Info("account repository credit internal account success", logger.Fields{
+		"accountNumber": accountNumber,
+		"amount":        amount,
+	})
+	return nil
 }
