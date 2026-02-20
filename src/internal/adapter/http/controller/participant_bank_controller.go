@@ -3,8 +3,10 @@ package controller
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type ParticipantBankService interface {
@@ -29,16 +31,24 @@ func (c *ParticipantBankController) RegisterRoutes(mux *http.ServeMux, authMiddl
 }
 
 func (c *ParticipantBankController) getParticipantBanks(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	logRequest(r, nil)
+
 	if r.Method != http.MethodGet {
-		writeJSON(w, http.StatusMethodNotAllowed, models.ErrorResponse[[]models.ParticipantBankResponse]("method not allowed"))
+		response := models.ErrorResponse[[]models.ParticipantBankResponse]("method not allowed")
+		writeJSON(w, http.StatusMethodNotAllowed, response)
+		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
 	}
 
 	response, err := c.service.GetParticipantBanks(r.Context())
 	if err != nil {
+		logError(r, err, logger.Fields{"message": response.Message})
 		writeJSON(w, http.StatusInternalServerError, response)
+		logResponse(r, http.StatusInternalServerError, response, start)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, response)
+	logResponse(r, http.StatusOK, response, start)
 }

@@ -3,8 +3,10 @@ package controller
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type ChargesService interface {
@@ -29,8 +31,12 @@ func (c *ChargesController) RegisterRoutes(mux *http.ServeMux, authMiddleware fu
 }
 
 func (c *ChargesController) getCharges(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
 	if r.Method != http.MethodGet {
-		writeJSON(w, http.StatusMethodNotAllowed, models.ErrorResponse[models.GetChargesResponse]("method not allowed"))
+		response := models.ErrorResponse[models.GetChargesResponse]("method not allowed")
+		writeJSON(w, http.StatusMethodNotAllowed, response)
+		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
 	}
 
@@ -38,16 +44,20 @@ func (c *ChargesController) getCharges(w http.ResponseWriter, r *http.Request) {
 		Amount:       r.URL.Query().Get("amount"),
 		FromCurrency: r.URL.Query().Get("fromCurrency"),
 	}
+	logRequest(r, req)
 
 	response, err := c.service.GetChargesSummary(r.Context(), req)
 	if err != nil {
+		logError(r, err, logger.Fields{"message": response.Message})
 		status := http.StatusInternalServerError
 		if response.Message == "validation failed" {
 			status = http.StatusBadRequest
 		}
 		writeJSON(w, status, response)
+		logResponse(r, status, response, start)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, response)
+	logResponse(r, http.StatusOK, response, start)
 }

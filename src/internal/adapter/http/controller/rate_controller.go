@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type RateService interface {
@@ -39,34 +41,52 @@ func (c *RateController) RegisterRoutes(mux *http.ServeMux, authMiddleware func(
 }
 
 func (c *RateController) getRates(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	logRequest(r, nil)
+
 	if r.Method != http.MethodGet {
-		writeJSON(w, http.StatusMethodNotAllowed, models.ErrorResponse[[]models.RateResponse]("method not allowed"))
+		response := models.ErrorResponse[[]models.RateResponse]("method not allowed")
+		writeJSON(w, http.StatusMethodNotAllowed, response)
+		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
 	}
 
 	response, err := c.service.GetRates(r.Context())
 	if err != nil {
+		logError(r, err, logger.Fields{"message": response.Message})
 		writeJSON(w, http.StatusInternalServerError, response)
+		logResponse(r, http.StatusInternalServerError, response, start)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, response)
+	logResponse(r, http.StatusOK, response, start)
 }
 
 func (c *RateController) getRate(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	logRequest(r, nil)
+
 	if r.Method != http.MethodPost {
-		writeJSON(w, http.StatusMethodNotAllowed, models.ErrorResponse[models.RateResponse]("method not allowed"))
+		response := models.ErrorResponse[models.RateResponse]("method not allowed")
+		writeJSON(w, http.StatusMethodNotAllowed, response)
+		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
 	}
 
 	var req models.GetRateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, models.ErrorResponse[models.RateResponse]("invalid request body", err.Error()))
+		logError(r, err, nil)
+		response := models.ErrorResponse[models.RateResponse]("invalid request body", err.Error())
+		writeJSON(w, http.StatusBadRequest, response)
+		logResponse(r, http.StatusBadRequest, response, start)
 		return
 	}
+	logRequest(r, req)
 
 	response, err := c.service.GetRate(r.Context(), req)
 	if err != nil {
+		logError(r, err, logger.Fields{"message": response.Message})
 		status := http.StatusInternalServerError
 		if response.Message == "validation failed" {
 			status = http.StatusBadRequest
@@ -75,26 +95,38 @@ func (c *RateController) getRate(w http.ResponseWriter, r *http.Request) {
 			status = http.StatusNotFound
 		}
 		writeJSON(w, status, response)
+		logResponse(r, status, response, start)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, response)
+	logResponse(r, http.StatusOK, response, start)
 }
 
 func (c *RateController) getCcyRates(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	logRequest(r, nil)
+
 	if r.Method != http.MethodPost {
-		writeJSON(w, http.StatusMethodNotAllowed, models.ErrorResponse[models.GetCcyRatesResponse]("method not allowed"))
+		response := models.ErrorResponse[models.GetCcyRatesResponse]("method not allowed")
+		writeJSON(w, http.StatusMethodNotAllowed, response)
+		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
 	}
 
 	var req models.GetCcyRatesRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, models.ErrorResponse[models.GetCcyRatesResponse]("invalid request body", err.Error()))
+		logError(r, err, nil)
+		response := models.ErrorResponse[models.GetCcyRatesResponse]("invalid request body", err.Error())
+		writeJSON(w, http.StatusBadRequest, response)
+		logResponse(r, http.StatusBadRequest, response, start)
 		return
 	}
+	logRequest(r, req)
 
 	response, err := c.service.GetCcyRates(r.Context(), req)
 	if err != nil {
+		logError(r, err, logger.Fields{"message": response.Message})
 		status := http.StatusInternalServerError
 		if response.Message == "validation failed" {
 			status = http.StatusBadRequest
@@ -103,8 +135,10 @@ func (c *RateController) getCcyRates(w http.ResponseWriter, r *http.Request) {
 			status = http.StatusNotFound
 		}
 		writeJSON(w, status, response)
+		logResponse(r, status, response, start)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, response)
+	logResponse(r, http.StatusOK, response, start)
 }

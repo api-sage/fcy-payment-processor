@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type UserService interface {
@@ -34,54 +36,82 @@ func (c *UserController) RegisterRoutes(mux *http.ServeMux, authMiddleware func(
 }
 
 func (c *UserController) createUser(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	logRequest(r, nil)
+
 	if r.Method != http.MethodPost {
-		writeJSON(w, http.StatusMethodNotAllowed, models.ErrorResponse[models.CreateUserResponse]("method not allowed"))
+		response := models.ErrorResponse[models.CreateUserResponse]("method not allowed")
+		writeJSON(w, http.StatusMethodNotAllowed, response)
+		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
 	}
 
 	var req models.CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, models.ErrorResponse[models.CreateUserResponse]("invalid request body", err.Error()))
+		logError(r, err, nil)
+		response := models.ErrorResponse[models.CreateUserResponse]("invalid request body", err.Error())
+		writeJSON(w, http.StatusBadRequest, response)
+		logResponse(r, http.StatusBadRequest, response, start)
 		return
 	}
+	logRequest(r, req)
 
 	if err := req.Validate(); err != nil {
-		writeJSON(w, http.StatusBadRequest, models.ErrorResponse[models.CreateUserResponse]("validation failed", err.Error()))
+		logError(r, err, nil)
+		response := models.ErrorResponse[models.CreateUserResponse]("validation failed", err.Error())
+		writeJSON(w, http.StatusBadRequest, response)
+		logResponse(r, http.StatusBadRequest, response, start)
 		return
 	}
 
 	response, err := c.service.CreateUser(r.Context(), req)
 	if err != nil {
+		logError(r, err, logger.Fields{"message": response.Message})
 		status := http.StatusInternalServerError
 		if response.Message == "validation failed" {
 			status = http.StatusBadRequest
 		}
 		writeJSON(w, status, response)
+		logResponse(r, status, response, start)
 		return
 	}
 
 	writeJSON(w, http.StatusCreated, response)
+	logResponse(r, http.StatusCreated, response, start)
 }
 
 func (c *UserController) verifyUserPin(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	logRequest(r, nil)
+
 	if r.Method != http.MethodPost {
-		writeJSON(w, http.StatusMethodNotAllowed, models.ErrorResponse[models.VerifyUserPinResponse]("method not allowed"))
+		response := models.ErrorResponse[models.VerifyUserPinResponse]("method not allowed")
+		writeJSON(w, http.StatusMethodNotAllowed, response)
+		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
 	}
 
 	var req models.VerifyUserPinRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, models.ErrorResponse[models.VerifyUserPinResponse]("invalid request body", err.Error()))
+		logError(r, err, nil)
+		response := models.ErrorResponse[models.VerifyUserPinResponse]("invalid request body", err.Error())
+		writeJSON(w, http.StatusBadRequest, response)
+		logResponse(r, http.StatusBadRequest, response, start)
 		return
 	}
+	logRequest(r, req)
 
 	if err := req.Validate(); err != nil {
-		writeJSON(w, http.StatusBadRequest, models.ErrorResponse[models.VerifyUserPinResponse]("validation failed", err.Error()))
+		logError(r, err, nil)
+		response := models.ErrorResponse[models.VerifyUserPinResponse]("validation failed", err.Error())
+		writeJSON(w, http.StatusBadRequest, response)
+		logResponse(r, http.StatusBadRequest, response, start)
 		return
 	}
 
 	response, err := c.service.VerifyUserPin(r.Context(), req.CustomerID, req.Pin)
 	if err != nil {
+		logError(r, err, logger.Fields{"message": response.Message})
 		status := http.StatusInternalServerError
 		if response.Message == "validation failed" || response.Message == "invalid pin" {
 			status = http.StatusBadRequest
@@ -90,8 +120,10 @@ func (c *UserController) verifyUserPin(w http.ResponseWriter, r *http.Request) {
 			status = http.StatusNotFound
 		}
 		writeJSON(w, status, response)
+		logResponse(r, status, response, start)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, response)
+	logResponse(r, http.StatusOK, response, start)
 }
