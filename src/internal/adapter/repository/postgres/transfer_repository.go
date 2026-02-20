@@ -97,7 +97,89 @@ RETURNING id, created_at, updated_at, processed_at`
 }
 
 func (r *TransferRepository) Update(ctx context.Context, transfer domain.Transfer) (domain.Transfer, error) {
-	return domain.Transfer{}, fmt.Errorf("not implemented")
+	logger.Info("transfer repository update", logger.Fields{
+		"transferId":           transfer.ID,
+		"transactionReference": transfer.TransactionReference,
+		"status":               transfer.Status,
+	})
+
+	const query = `
+UPDATE transfers
+SET external_refernece = $2,
+    transaction_reference = $3,
+    debit_account_number = $4,
+    credit_account_number = $5,
+    beneficiary_bank_code = $6,
+    debit_currency = $7,
+    credit_currency = $8,
+    debit_amount = $9,
+    credit_amount = $10,
+    fcy_rate = $11,
+    charge_amount = $12,
+    vat_amount = $13,
+    narration = $14,
+    status = $15,
+    audit_payload = $16,
+    updated_at = NOW(),
+    processed_at = CASE
+        WHEN $15 IN ('SUCCESS', 'FAILED', 'CLOSED') THEN NOW()
+        ELSE processed_at
+    END
+WHERE id = $1
+RETURNING created_at, updated_at, processed_at`
+
+	var (
+		createdAt   time.Time
+		updatedAt   time.Time
+		processedAt sql.NullTime
+	)
+
+	if err := r.db.QueryRowContext(
+		ctx,
+		query,
+		transfer.ID,
+		transfer.ExternalRefernece,
+		transfer.TransactionReference,
+		transfer.DebitAccountNumber,
+		transfer.CreditAccountNumber,
+		transfer.BeneficiaryBankCode,
+		transfer.DebitCurrency,
+		transfer.CreditCurrency,
+		transfer.DebitAmount,
+		transfer.CreditAmount,
+		transfer.FCYRate,
+		transfer.ChargeAmount,
+		transfer.VATAmount,
+		transfer.Narration,
+		transfer.Status,
+		transfer.AuditPayload,
+	).Scan(&createdAt, &updatedAt, &processedAt); err != nil {
+		if err == sql.ErrNoRows {
+			logger.Info("transfer repository record not found", logger.Fields{
+				"transferId": transfer.ID,
+			})
+			return domain.Transfer{}, domain.ErrRecordNotFound
+		}
+		logger.Error("transfer repository update failed", err, logger.Fields{
+			"transferId": transfer.ID,
+		})
+		return domain.Transfer{}, fmt.Errorf("update transfer: %w", err)
+	}
+
+	transfer.CreatedAt = createdAt
+	transfer.UpdatedAt = updatedAt
+	transfer.ProcessedAt = nil
+	if processedAt.Valid {
+		value := processedAt.Time
+		transfer.ProcessedAt = &value
+	}
+
+	logger.Info("transfer repository update success", logger.Fields{
+		"transferId": transfer.ID,
+		"status":     transfer.Status,
+	})
+
+	return transfer, nil
 }
 
 func (r *TransferRepository) Get(ctx context.Context, id string, transactionReference string, externalRefernece string) (domain.Transfer, error) {
