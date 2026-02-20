@@ -140,7 +140,6 @@ WHERE account_number = $1
 func (r *TransientAccountRepository) SettleFromSuspenseToFees(
 	ctx context.Context,
 	suspenseAccountNumber string,
-	suspenseCurrency string,
 	chargeAmount string,
 	vatAmount string,
 	chargesAccountNumber string,
@@ -150,7 +149,6 @@ func (r *TransientAccountRepository) SettleFromSuspenseToFees(
 ) error {
 	logger.Info("transient account repository settle from suspense to fees", logger.Fields{
 		"suspenseAccountNumber": suspenseAccountNumber,
-		"suspenseCurrency":      suspenseCurrency,
 		"chargeAmount":          chargeAmount,
 		"vatAmount":             vatAmount,
 		"chargesAccountNumber":  chargesAccountNumber,
@@ -175,9 +173,8 @@ UPDATE transient_accounts
 SET available_balance = available_balance - ($2::numeric + $3::numeric),
     updated_at = NOW()
 WHERE account_number = $1
-  AND UPPER(currency) = UPPER($4)
   AND available_balance >= ($2::numeric + $3::numeric)`
-	result, execErr := tx.ExecContext(ctx, debitSuspenseSumQuery, suspenseAccountNumber, chargeAmount, vatAmount, suspenseCurrency)
+	result, execErr := tx.ExecContext(ctx, debitSuspenseSumQuery, suspenseAccountNumber, chargeAmount, vatAmount)
 	if execErr != nil {
 		err = fmt.Errorf("debit suspense for settlement: %w", execErr)
 		return err

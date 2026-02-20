@@ -307,13 +307,14 @@ LIMIT 1`
 	return transfer, nil
 }
 
-func (r *TransferRepository) ProcessInternalTransfer(ctx context.Context, debitAccountNumber string, debitAmount string, suspenseAccountNumber string, creditAccountNumber string, creditAmount string) error {
+func (r *TransferRepository) ProcessInternalTransfer(ctx context.Context, debitAccountNumber string, debitAmount string, suspenseAccountNumber string, debitSuspenseAccountAmount string, creditAccountNumber string, creditAmount string) error {
 	logger.Info("transfer repository process internal transfer", logger.Fields{
-		"debitAccountNumber":    debitAccountNumber,
-		"debitAmount":           debitAmount,
-		"suspenseAccountNumber": suspenseAccountNumber,
-		"creditAccountNumber":   creditAccountNumber,
-		"creditAmount":          creditAmount,
+		"debitAccountNumber":         debitAccountNumber,
+		"debitAmount":                debitAmount,
+		"suspenseAccountNumber":      suspenseAccountNumber,
+		"debitSuspenseAccountAmount": debitSuspenseAccountAmount,
+		"creditAccountNumber":        creditAccountNumber,
+		"creditAmount":               creditAmount,
 	})
 
 	tx, err := r.db.BeginTx(ctx, nil)
@@ -353,7 +354,7 @@ SET available_balance = available_balance - $2::numeric,
     updated_at = NOW()
 WHERE account_number = $1
   AND available_balance >= $2::numeric`
-	if _, err = execRequiredRows(ctx, tx, debitSuspenseQuery, suspenseAccountNumber, creditAmount); err != nil {
+	if _, err = execRequiredRows(ctx, tx, debitSuspenseQuery, suspenseAccountNumber, debitSuspenseAccountAmount); err != nil {
 		return err
 	}
 
@@ -387,10 +388,10 @@ func (r *TransferRepository) UpdateStatus(ctx context.Context, transferID string
 
 	const query = `
 UPDATE transfers
-SET status = $2,
+SET status = $2::varchar,
     updated_at = NOW(),
     processed_at = CASE
-        WHEN $2 IN ('SUCCESS', 'FAILED', 'CLOSED') THEN NOW()
+        WHEN $2::varchar IN ('SUCCESS', 'FAILED', 'CLOSED') THEN NOW()
         ELSE processed_at
     END
 WHERE id = $1`

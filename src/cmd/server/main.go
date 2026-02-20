@@ -64,6 +64,8 @@ func main() {
 		transientAccountRepo,
 		transientAccountTransactionRepo,
 		rateRepo,
+		rateService,
+		chargesService,
 		cfg.ChargePercent,
 		cfg.VATPercent,
 		cfg.GreyBankCode,

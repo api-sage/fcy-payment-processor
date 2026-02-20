@@ -8,7 +8,6 @@ type TransientAccountRepository interface {
 	SettleFromSuspenseToFees(
 		ctx context.Context,
 		suspenseAccountNumber string,
-		suspenseCurrency string,
 		chargeAmount string,
 		vatAmount string,
 		chargesAccountNumber string,

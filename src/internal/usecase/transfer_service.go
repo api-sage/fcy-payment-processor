@@ -22,6 +22,8 @@ type TransferService struct {
 	transientAccountRepo            domain.TransientAccountRepository
 	transientAccountTransactionRepo domain.TransientAccountTransactionRepository
 	rateRepo                        domain.RateRepository
+	rateService                     *RateService
+	chargeService                   *ChargesService
 	chargePercent                   float64
 	vatPercent                      float64
 	greyBankCode                    string
@@ -36,6 +38,8 @@ func NewTransferService(
 	transientAccountRepo domain.TransientAccountRepository,
 	transientAccountTransactionRepo domain.TransientAccountTransactionRepository,
 	rateRepo domain.RateRepository,
+	rateService *RateService,
+	chargeService *ChargesService,
 	chargePercent float64,
 	vatPercent float64,
 	greyBankCode string,
@@ -49,6 +53,8 @@ func NewTransferService(
 		transientAccountRepo:            transientAccountRepo,
 		transientAccountTransactionRepo: transientAccountTransactionRepo,
 		rateRepo:                        rateRepo,
+		rateService:                     rateService,
+		chargeService:                   chargeService,
 		chargePercent:                   chargePercent,
 		vatPercent:                      vatPercent,
 		greyBankCode:                    strings.TrimSpace(greyBankCode),
@@ -118,25 +124,37 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		return models.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
 	}
 
-	rateValue, _, err := s.resolveRate(ctx, debitCurrency, creditCurrency)
+	convertedAmount, rateUsed, _, err := s.rateService.ConvertRate(ctx, debitAmount.String(), debitCurrency, creditCurrency)
+	_, _, charge, vat, totalDebitAmount, err := s.chargeService.GetCharges(debitAmount.String(), debitCurrency)
 	if err != nil {
-		if errors.Is(err, domain.ErrRecordNotFound) {
-			return models.ErrorResponse[models.InternalTransferResponse]("Rate not found"), err
-		}
 		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 	}
 
-	creditAmount := debitAmount.Mul(rateValue)
-	chargePercent := decimal.NewFromFloat(s.chargePercent).Div(decimal.NewFromInt(100))
-	vatPercent := decimal.NewFromFloat(s.vatPercent).Div(decimal.NewFromInt(100))
-	chargeAmount := debitAmount.Mul(chargePercent)
-	vatAmount := debitAmount.Mul(vatPercent)
-	sumTotal := debitAmount.Add(chargeAmount).Add(vatAmount)
+	creditAmount, err := decimal.NewFromString(strings.TrimSpace(convertedAmount))
+	if err != nil {
+		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+	}
+
+	chargeAmount, err := decimal.NewFromString(strings.TrimSpace(charge))
+	if err != nil {
+		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+	}
+
+	vatAmount, err := decimal.NewFromString(strings.TrimSpace(vat))
+	if err != nil {
+		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+	}
+
+	sumTotal, err := decimal.NewFromString(strings.TrimSpace(totalDebitAmount))
+	if err != nil {
+		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
+	}
 
 	debitAvailable, parseErr := decimal.NewFromString(strings.TrimSpace(debitAccount.AvailableBalance))
 	if parseErr != nil {
 		return models.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), parseErr
 	}
+
 	if debitAvailable.LessThan(sumTotal) {
 		err := domain.ErrInsufficientBalance
 		return models.ErrorResponse[models.InternalTransferResponse]("Insufficient balance"), err
@@ -159,7 +177,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 			CreditCurrency:       creditCurrency,
 			DebitAmount:          debitAmount.StringFixed(2),
 			CreditAmount:         creditAmount.StringFixed(2),
-			FCYRate:              rateValue.StringFixed(8),
+			FCYRate:              rateUsed,
 			ChargeAmount:         chargeAmount.StringFixed(2),
 			VATAmount:            vatAmount.StringFixed(2),
 			Narration:            stringPtr(narration),
@@ -184,6 +202,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		debitAccountNumber,
 		sumTotal.StringFixed(2),
 		s.internalTransientAccountNumber,
+		req.DebitAmount,
 		creditAccountNumber,
 		creditAmount.StringFixed(2),
 	)
@@ -222,7 +241,6 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	settlementErr := s.transientAccountRepo.SettleFromSuspenseToFees(
 		ctx,
 		s.internalTransientAccountNumber,
-		debitCurrency,
 		chargeAmount.StringFixed(2),
 		vatAmount.StringFixed(2),
 		s.internalChargesAccountNumber,
@@ -274,26 +292,6 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	return models.SuccessResponse("Transaction successful", response), nil
 }
 
-func (s *TransferService) resolveRate(ctx context.Context, fromCurrency string, toCurrency string) (decimal.Decimal, time.Time, error) {
-	if strings.EqualFold(fromCurrency, toCurrency) {
-		return decimal.NewFromInt(1), time.Now(), nil
-	}
-
-	rate, err := s.rateRepo.GetRate(ctx, fromCurrency, toCurrency)
-	if err != nil {
-		return decimal.Zero, time.Time{}, err
-	}
-
-	value, parseErr := decimal.NewFromString(strings.TrimSpace(rate.Rate))
-	if parseErr != nil {
-		return decimal.Zero, time.Time{}, parseErr
-	}
-	if value.Equal(decimal.Zero) {
-		return decimal.Zero, time.Time{}, fmt.Errorf("rate cannot be zero")
-	}
-	return value, rate.RateDate, nil
-}
-
 func (s *TransferService) convertFeesToUSD(
 	ctx context.Context,
 	chargeAmount decimal.Decimal,
@@ -304,11 +302,30 @@ func (s *TransferService) convertFeesToUSD(
 		return chargeAmount, vatAmount, nil
 	}
 
-	rateToUSD, _, err := s.resolveRate(ctx, debitCurrency, "USD")
+	rateResp, err := s.rateService.GetRate(ctx, models.GetRateRequest{
+		FromCurrency: debitCurrency,
+		ToCurrency:   "USD",
+	})
 	if err != nil {
 		return decimal.Zero, decimal.Zero, err
 	}
-	return chargeAmount.Mul(rateToUSD), vatAmount.Mul(rateToUSD), nil
+
+	if !rateResp.Success || rateResp.Data == nil {
+		return decimal.Zero, decimal.Zero, fmt.Errorf("rate lookup failed")
+	}
+
+	rateValue, parseErr := decimal.NewFromString(strings.TrimSpace(rateResp.Data.Rate))
+	if parseErr != nil {
+		return decimal.Zero, decimal.Zero, fmt.Errorf("invalid USD rate: %w", parseErr)
+	}
+	if rateValue.LessThanOrEqual(decimal.Zero) {
+		return decimal.Zero, decimal.Zero, fmt.Errorf("usd rate must be greater than zero")
+	}
+
+	chargeUSD := chargeAmount.Mul(rateValue)
+	vatUSD := vatAmount.Mul(rateValue)
+
+	return chargeUSD, vatUSD, nil
 }
 
 func mapTransferToResponse(transfer domain.Transfer, sumTotal string) models.InternalTransferResponse {
