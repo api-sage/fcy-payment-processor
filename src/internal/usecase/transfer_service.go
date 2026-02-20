@@ -280,26 +280,18 @@ func (s *TransferService) resolveRate(ctx context.Context, fromCurrency string, 
 	}
 
 	rate, err := s.rateRepo.GetRate(ctx, fromCurrency, toCurrency)
-	if err == nil {
-		value, parseErr := decimal.NewFromString(strings.TrimSpace(rate.Rate))
-		if parseErr != nil {
-			return decimal.Zero, time.Time{}, parseErr
-		}
-		return value, rate.RateDate, nil
-	}
-
-	inverseRate, inverseErr := s.rateRepo.GetRate(ctx, toCurrency, fromCurrency)
-	if inverseErr != nil {
+	if err != nil {
 		return decimal.Zero, time.Time{}, err
 	}
-	inverseValue, parseErr := decimal.NewFromString(strings.TrimSpace(inverseRate.Rate))
+
+	value, parseErr := decimal.NewFromString(strings.TrimSpace(rate.Rate))
 	if parseErr != nil {
 		return decimal.Zero, time.Time{}, parseErr
 	}
-	if inverseValue.Equal(decimal.Zero) {
+	if value.Equal(decimal.Zero) {
 		return decimal.Zero, time.Time{}, fmt.Errorf("rate cannot be zero")
 	}
-	return decimal.NewFromInt(1).Div(inverseValue), inverseRate.RateDate, nil
+	return value, rate.RateDate, nil
 }
 
 func (s *TransferService) convertFeesToUSD(

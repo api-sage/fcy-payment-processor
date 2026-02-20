@@ -106,32 +106,20 @@ func (s *RateService) ConvertRate(ctx context.Context, amount string, fromCcy st
 	}
 
 	rate, err := s.rateRepo.GetRate(ctx, fromCurrency, toCurrency)
-	if err == nil {
-		usedRate, parseErr := decimal.NewFromString(strings.TrimSpace(rate.Rate))
-		if parseErr != nil {
-			return "", "", "", fmt.Errorf("invalid stored sell rate: %w", parseErr)
-		}
-
-		converted := parsedAmount.Mul(usedRate)
-		return converted.StringFixed(8), usedRate.StringFixed(8), rate.RateDate.Format("2006-01-02"), nil
-	}
-
-	inverseRate, inverseErr := s.rateRepo.GetRate(ctx, toCurrency, fromCurrency)
-	if inverseErr != nil {
+	if err != nil {
 		return "", "", "", err
 	}
 
-	inverseValue, parseErr := decimal.NewFromString(strings.TrimSpace(inverseRate.Rate))
+	usedRate, parseErr := decimal.NewFromString(strings.TrimSpace(rate.Rate))
 	if parseErr != nil {
-		return "", "", "", fmt.Errorf("invalid stored inverse sell rate: %w", parseErr)
+		return "", "", "", fmt.Errorf("invalid stored rate: %w", parseErr)
 	}
-	if inverseValue.Equal(decimal.Zero) {
-		return "", "", "", fmt.Errorf("inverse rate cannot be zero")
+	if usedRate.Equal(decimal.Zero) {
+		return "", "", "", fmt.Errorf("rate cannot be zero")
 	}
 
-	usedRate := decimal.NewFromInt(1).Div(inverseValue)
 	converted := parsedAmount.Mul(usedRate)
-	return converted.StringFixed(8), usedRate.StringFixed(8), inverseRate.RateDate.Format("2006-01-02"), nil
+	return converted.StringFixed(8), usedRate.StringFixed(8), rate.RateDate.Format("2006-01-02"), nil
 }
 
 func (s *RateService) GetCcyRates(ctx context.Context, req models.GetCcyRatesRequest) (models.Response[models.GetCcyRatesResponse], error) {
