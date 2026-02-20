@@ -53,6 +53,9 @@ func (c *ChargesController) getCharges(w http.ResponseWriter, r *http.Request) {
 		if response.Message == "validation failed" {
 			status = http.StatusBadRequest
 		}
+		if response.Message == "Rate not found for currency pair" {
+			status = http.StatusNotFound
+		}
 		writeJSON(w, status, response)
 		logResponse(r, status, response, start)
 		return

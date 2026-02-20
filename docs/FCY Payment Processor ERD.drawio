@@ -1,9 +1,12 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36" version="29.4.0">
   <diagram name="Page-1" id="ANqVKZt0QADVgEb_7Uea">
-    <mxGraphModel dx="3227" dy="2437" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="2434" dy="1991" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-161" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="1010" width="1580" x="-10" y="-290" as="geometry" />
+        </mxCell>
         <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-1" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;html=1;" value="Users" vertex="1">
           <mxGeometry height="430" width="230" x="40" y="70" as="geometry">
             <mxRectangle height="30" width="70" x="40" y="70" as="alternateBounds" />
@@ -444,7 +447,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-136" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;html=1;" value="Rates" vertex="1">
-          <mxGeometry height="300" width="230" x="460" y="435" as="geometry">
+          <mxGeometry height="245" width="230" x="460" y="435" as="geometry">
             <mxRectangle height="30" width="70" x="40" y="70" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
@@ -495,33 +498,23 @@
             <mxRectangle height="30" width="30" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-148" parent="Sp6MaZ3ZUzpJMftGoeyw-146" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="sell_rate" vertex="1">
+        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-148" parent="Sp6MaZ3ZUzpJMftGoeyw-146" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="rate" vertex="1">
           <mxGeometry height="30" width="200" x="30" as="geometry">
             <mxRectangle height="30" width="200" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-149" parent="1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="mid_rate" vertex="1">
+        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-149" parent="1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="rate_date" vertex="1">
           <mxGeometry height="30" width="200" x="490" y="585" as="geometry">
             <mxRectangle height="30" width="200" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-150" parent="1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="buy_rate" vertex="1">
+        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-150" parent="1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="created_at" vertex="1">
           <mxGeometry height="30" width="200" x="490" y="615" as="geometry">
             <mxRectangle height="30" width="200" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-151" parent="1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="rate_date" vertex="1">
+        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-151" parent="1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="updated_at" vertex="1">
           <mxGeometry height="30" width="200" x="490" y="645" as="geometry">
-            <mxRectangle height="30" width="200" as="alternateBounds" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-152" parent="1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="created_at" vertex="1">
-          <mxGeometry height="30" width="200" x="490" y="675" as="geometry">
-            <mxRectangle height="30" width="200" as="alternateBounds" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-154" parent="1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="updated_at" vertex="1">
-          <mxGeometry height="30" width="200" x="490" y="705" as="geometry">
             <mxRectangle height="30" width="200" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
@@ -542,9 +535,6 @@
             <mxGeometry height="270" width="740" x="870" y="-240" as="geometry" />
           </mxCell>
         </UserObject>
-        <mxCell id="Sp6MaZ3ZUzpJMftGoeyw-161" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
-          <mxGeometry height="1080" width="1580" x="-10" y="-290" as="geometry" />
-        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

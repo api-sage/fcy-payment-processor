@@ -22,7 +22,7 @@ func (r *RateRepository) GetRates(ctx context.Context) ([]domain.Rate, error) {
 	logger.Info("rate repository get rates", nil)
 
 	const query = `
-SELECT id, from_currency, to_currency, sell_rate, buy_rate, rate_date, created_at
+SELECT id, from_currency, to_currency, rate, rate_date, created_at
 FROM rates
 ORDER BY rate_date DESC, from_currency ASC, to_currency ASC`
 
@@ -40,8 +40,7 @@ ORDER BY rate_date DESC, from_currency ASC, to_currency ASC`
 			&rate.ID,
 			&rate.FromCurrency,
 			&rate.ToCurrency,
-			&rate.SellRate,
-			&rate.BuyRate,
+			&rate.Rate,
 			&rate.RateDate,
 			&rate.CreatedAt,
 		); err != nil {
@@ -71,7 +70,7 @@ func (r *RateRepository) GetRate(ctx context.Context, fromCurrency string, toCur
 	})
 
 	const query = `
-SELECT id, from_currency, to_currency, sell_rate, buy_rate, rate_date, created_at
+SELECT id, from_currency, to_currency, rate, rate_date, created_at
 FROM rates
 WHERE from_currency = $1
   AND to_currency = $2
@@ -83,8 +82,7 @@ LIMIT 1`
 		&rate.ID,
 		&rate.FromCurrency,
 		&rate.ToCurrency,
-		&rate.SellRate,
-		&rate.BuyRate,
+		&rate.Rate,
 		&rate.RateDate,
 		&rate.CreatedAt,
 	); err != nil {

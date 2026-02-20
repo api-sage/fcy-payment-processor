@@ -58,8 +58,7 @@ CREATE TABLE IF NOT EXISTS rates (
     id BIGSERIAL PRIMARY KEY,
     from_currency CHAR(3) NOT NULL CHECK (from_currency IN ('USD', 'EUR', 'GBP')),
     to_currency CHAR(3) NOT NULL CHECK (to_currency IN ('USD', 'EUR', 'GBP')),
-    sell_rate NUMERIC(20, 8) NOT NULL,
-    buy_rate NUMERIC(20, 8) NOT NULL,
+    rate NUMERIC(20, 8) NOT NULL,
     rate_date DATE NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (from_currency, to_currency, rate_date)

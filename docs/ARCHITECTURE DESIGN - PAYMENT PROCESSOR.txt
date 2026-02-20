@@ -40,7 +40,7 @@ ccy-payment-processor/
 * Users: Auth and Profile data including customer Id.
 * Accounts: CustomerId, Account related data and available amount, account status, etc
 * Transfers: Main transaction log (ID, Status, PaymentRef, AuditPayload).
-* Rates: CCY record - FromCcy, ToCcy, SellRate, BuyRate, RateDate.
+* Rates: CCY record - FromCcy, ToCcy, Rate, RateDate.
 * TransientAccountTransactions: Ledger for the Suspense Account movements.
 
 3. API ENDPOINTS

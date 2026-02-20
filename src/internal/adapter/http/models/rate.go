@@ -11,8 +11,7 @@ type RateResponse struct {
 	ID           int64  `json:"id"`
 	FromCurrency string `json:"fromCurrency"`
 	ToCurrency   string `json:"toCurrency"`
-	SellRate     string `json:"sellRate"`
-	BuyRate      string `json:"buyRate"`
+	Rate         string `json:"rate"`
 	RateDate     string `json:"rateDate"`
 	CreatedAt    string `json:"createdAt"`
 }
@@ -39,9 +38,6 @@ func (r GetRateRequest) Validate() error {
 	}
 	if toCurrency != "" && len(toCurrency) != 3 {
 		errs = append(errs, "toCurrency must be 3 characters")
-	}
-	if fromCurrency != "" && toCurrency != "" && fromCurrency == toCurrency {
-		errs = append(errs, "fromCurrency and toCurrency cannot be the same")
 	}
 
 	if len(errs) > 0 {
@@ -85,10 +81,6 @@ func (r GetCcyRatesRequest) Validate() error {
 		errs = append(errs, "toCcy is required")
 	} else if len(toCcy) != 3 {
 		errs = append(errs, "toCcy must be 3 characters")
-	}
-
-	if fromCcy != "" && toCcy != "" && fromCcy == toCcy {
-		errs = append(errs, "fromCcy and toCcy cannot be the same")
 	}
 
 	if len(errs) > 0 {
