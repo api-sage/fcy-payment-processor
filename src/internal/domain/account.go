@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type AccountStatus string
 
@@ -15,8 +19,8 @@ type Account struct {
 	CustomerID       string
 	AccountNumber    string
 	Currency         string
-	AvailableBalance string
-	LedgerBalance    string
+	AvailableBalance decimal.Decimal
+	LedgerBalance    decimal.Decimal
 	Status           AccountStatus
 	CreatedAt        time.Time
 	UpdatedAt        time.Time

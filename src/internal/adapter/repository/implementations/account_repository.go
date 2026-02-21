@@ -10,6 +10,7 @@ import (
 	"github.com/api-sage/fcy-payment-processor/src/internal/commons"
 	"github.com/api-sage/fcy-payment-processor/src/internal/domain"
 	"github.com/api-sage/fcy-payment-processor/src/internal/logger"
+	"github.com/shopspring/decimal"
 )
 
 type AccountRepository struct {
@@ -138,7 +139,7 @@ SELECT EXISTS (
 	return exists, nil
 }
 
-func (r *AccountRepository) DebitInternalAccount(ctx context.Context, accountNumber string, amount string) error {
+func (r *AccountRepository) DebitInternalAccount(ctx context.Context, accountNumber string, amount decimal.Decimal) error {
 	logger.Info("account repository debit internal account", logger.Fields{
 		"accountNumber": accountNumber,
 		"amount":        amount,
@@ -190,7 +191,7 @@ WHERE account_number = $1
 	return nil
 }
 
-func (r *AccountRepository) CreditInternalAccount(ctx context.Context, accountNumber string, amount string) error {
+func (r *AccountRepository) CreditInternalAccount(ctx context.Context, accountNumber string, amount decimal.Decimal) error {
 	logger.Info("account repository credit internal account", logger.Fields{
 		"accountNumber": accountNumber,
 		"amount":        amount,
@@ -241,7 +242,7 @@ WHERE account_number = $1
 	return nil
 }
 
-func (r *AccountRepository) DepositFunds(ctx context.Context, accountNumber string, amount string) error {
+func (r *AccountRepository) DepositFunds(ctx context.Context, accountNumber string, amount decimal.Decimal) error {
 	logger.Info("account repository deposit funds", logger.Fields{
 		"accountNumber": accountNumber,
 		"amount":        amount,
