@@ -354,6 +354,7 @@ func (r *TransferRepository) ProcessInternalTransfer(ctx context.Context, debitA
 	debitSenderQuery := `
 UPDATE accounts
 SET available_balance = available_balance - $2::numeric,
+    ledger_balance = ledger_balance - $2::numeric,
     updated_at = NOW()
 WHERE account_number = $1
   AND status = 'ACTIVE'
@@ -384,6 +385,7 @@ WHERE account_number = $1
 	creditBeneficiaryQuery := `
 UPDATE accounts
 SET available_balance = available_balance + $2::numeric,
+    ledger_balance = ledger_balance + $2::numeric,
     updated_at = NOW()
 WHERE account_number = $1
   AND status = 'ACTIVE'`
