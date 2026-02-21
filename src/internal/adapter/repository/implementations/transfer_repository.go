@@ -11,6 +11,7 @@ import (
 	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
+	"github.com/shopspring/decimal"
 )
 
 type TransferRepository struct {
@@ -36,6 +37,8 @@ INSERT INTO transfers (
 	debit_account_number,
 	credit_account_number,
 	beneficiary_bank_code,
+	debit_bank_name,
+	credit_bank_name,
 	debit_currency,
 	credit_currency,
 	debit_amount,
@@ -47,7 +50,7 @@ INSERT INTO transfers (
 	status,
 	audit_payload
 ) VALUES (
-	$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+	$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
 )
 RETURNING id, created_at, updated_at, processed_at`
 
@@ -66,6 +69,8 @@ RETURNING id, created_at, updated_at, processed_at`
 		transfer.DebitAccountNumber,
 		transfer.CreditAccountNumber,
 		transfer.BeneficiaryBankCode,
+		transfer.DebitBankName,
+		transfer.CreditBankName,
 		transfer.DebitCurrency,
 		transfer.CreditCurrency,
 		transfer.DebitAmount,
@@ -113,19 +118,21 @@ SET external_refernece = $2,
     debit_account_number = $4,
     credit_account_number = $5,
     beneficiary_bank_code = $6,
-    debit_currency = $7,
-    credit_currency = $8,
-    debit_amount = $9,
-    credit_amount = $10,
-    fcy_rate = $11,
-    charge_amount = $12,
-    vat_amount = $13,
-    narration = $14,
-    status = $15,
-    audit_payload = $16,
+    debit_bank_name = $7,
+    credit_bank_name = $8,
+    debit_currency = $9,
+    credit_currency = $10,
+    debit_amount = $11,
+    credit_amount = $12,
+    fcy_rate = $13,
+    charge_amount = $14,
+    vat_amount = $15,
+    narration = $16,
+    status = $17,
+    audit_payload = $18,
     updated_at = NOW(),
     processed_at = CASE
-        WHEN $15 IN ('SUCCESS', 'FAILED', 'CLOSED') THEN NOW()
+        WHEN $17 IN ('SUCCESS', 'FAILED', 'CLOSED') THEN NOW()
         ELSE processed_at
     END
 WHERE id = $1
@@ -146,6 +153,8 @@ RETURNING created_at, updated_at, processed_at`
 		transfer.DebitAccountNumber,
 		transfer.CreditAccountNumber,
 		transfer.BeneficiaryBankCode,
+		transfer.DebitBankName,
+		transfer.CreditBankName,
 		transfer.DebitCurrency,
 		transfer.CreditCurrency,
 		transfer.DebitAmount,
@@ -207,6 +216,8 @@ SELECT id,
        debit_account_number,
        credit_account_number,
        beneficiary_bank_code,
+       debit_bank_name,
+       credit_bank_name,
        debit_currency,
        credit_currency,
        debit_amount,
@@ -233,6 +244,8 @@ LIMIT 1`
 		transactionReferenceDB sql.NullString
 		creditAccountNumber    sql.NullString
 		beneficiaryBankCode    sql.NullString
+		debitBankName          sql.NullString
+		creditBankName         sql.NullString
 		narration              sql.NullString
 		processedAt            sql.NullTime
 	)
@@ -244,6 +257,8 @@ LIMIT 1`
 		&transfer.DebitAccountNumber,
 		&creditAccountNumber,
 		&beneficiaryBankCode,
+		&debitBankName,
+		&creditBankName,
 		&transfer.DebitCurrency,
 		&transfer.CreditCurrency,
 		&transfer.DebitAmount,
@@ -290,6 +305,14 @@ LIMIT 1`
 		value := beneficiaryBankCode.String
 		transfer.BeneficiaryBankCode = &value
 	}
+	if debitBankName.Valid {
+		value := debitBankName.String
+		transfer.DebitBankName = &value
+	}
+	if creditBankName.Valid {
+		value := creditBankName.String
+		transfer.CreditBankName = &value
+	}
 	if narration.Valid {
 		value := narration.String
 		transfer.Narration = &value
@@ -308,7 +331,7 @@ LIMIT 1`
 	return transfer, nil
 }
 
-func (r *TransferRepository) ProcessInternalTransfer(ctx context.Context, debitAccountNumber string, debitAmount string, suspenseAccountNumber string, debitSuspenseAccountAmount string, creditAccountNumber string, creditAmount string) error {
+func (r *TransferRepository) ProcessInternalTransfer(ctx context.Context, debitAccountNumber string, debitAmount decimal.Decimal, suspenseAccountNumber string, debitSuspenseAccountAmount decimal.Decimal, creditAccountNumber string, creditAmount decimal.Decimal) error {
 	logger.Info("transfer repository process internal transfer", logger.Fields{
 		"debitAccountNumber":         debitAccountNumber,
 		"debitAmount":                debitAmount,
@@ -332,6 +355,7 @@ func (r *TransferRepository) ProcessInternalTransfer(ctx context.Context, debitA
 	debitSenderQuery := `
 UPDATE accounts
 SET available_balance = available_balance - $2::numeric,
+    ledger_balance = ledger_balance - $2::numeric,
     updated_at = NOW()
 WHERE account_number = $1
   AND status = 'ACTIVE'
@@ -362,6 +386,7 @@ WHERE account_number = $1
 	creditBeneficiaryQuery := `
 UPDATE accounts
 SET available_balance = available_balance + $2::numeric,
+    ledger_balance = ledger_balance + $2::numeric,
     updated_at = NOW()
 WHERE account_number = $1
   AND status = 'ACTIVE'`
@@ -377,6 +402,90 @@ WHERE account_number = $1
 	logger.Info("transfer repository process internal transfer success", logger.Fields{
 		"debitAccountNumber":  debitAccountNumber,
 		"creditAccountNumber": creditAccountNumber,
+	})
+	return nil
+}
+
+func (r *TransferRepository) ProcessExternalTransfer(
+	ctx context.Context,
+	debitAccountNumber string,
+	totalDebitAmount decimal.Decimal,
+	suspenseAccountNumber string,
+	debitSuspenseAccountAmount decimal.Decimal,
+	externalAccountNumber string,
+	creditExternalAccountAmount decimal.Decimal,
+	externalAccountCurrency string,
+) error {
+	logger.Info("transfer repository process external transfer", logger.Fields{
+		"debitAccountNumber":         debitAccountNumber,
+		"totalDebitAmount":           totalDebitAmount,
+		"suspenseAccountNumber":      suspenseAccountNumber,
+		"debitSuspenseAccountAmount": debitSuspenseAccountAmount,
+		"externalAccountNumber":      externalAccountNumber,
+		"creditExternalAmount":       creditExternalAccountAmount,
+		"externalAccountCurrency":    externalAccountCurrency,
+	})
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		logger.Error("transfer repository begin external tx failed", err, nil)
+		return fmt.Errorf("begin external transfer transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	debitSenderQuery := `
+UPDATE accounts
+SET available_balance = available_balance - $2::numeric,
+    ledger_balance = ledger_balance - $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND status = 'ACTIVE'
+  AND available_balance >= $2::numeric`
+	if _, err = execRequiredRows(ctx, tx, debitSenderQuery, debitAccountNumber, totalDebitAmount); err != nil {
+		return err
+	}
+
+	creditSuspenseQuery := `
+UPDATE transient_accounts
+SET available_balance = available_balance + $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1`
+	if _, err = execRequiredRows(ctx, tx, creditSuspenseQuery, suspenseAccountNumber, totalDebitAmount); err != nil {
+		return err
+	}
+
+	debitSuspenseForBeneficiaryQuery := `
+UPDATE transient_accounts
+SET available_balance = available_balance - $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND available_balance >= $2::numeric`
+	if _, err = execRequiredRows(ctx, tx, debitSuspenseForBeneficiaryQuery, suspenseAccountNumber, debitSuspenseAccountAmount); err != nil {
+		return err
+	}
+
+	creditExternalAccountQuery := `
+UPDATE transient_accounts
+SET available_balance = available_balance + $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND UPPER(currency) = UPPER($3)`
+	if _, err = execRequiredRows(ctx, tx, creditExternalAccountQuery, externalAccountNumber, creditExternalAccountAmount, externalAccountCurrency); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		logger.Error("transfer repository commit external tx failed", err, nil)
+		return fmt.Errorf("commit external transfer transaction: %w", err)
+	}
+
+	logger.Info("transfer repository process external transfer success", logger.Fields{
+		"debitAccountNumber":    debitAccountNumber,
+		"externalAccountNumber": externalAccountNumber,
 	})
 	return nil
 }

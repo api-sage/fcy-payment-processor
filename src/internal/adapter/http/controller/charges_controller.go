@@ -3,11 +3,13 @@ package controller
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
 	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
+	"github.com/shopspring/decimal"
 )
 
 type ChargesService interface {
@@ -41,8 +43,11 @@ func (c *ChargesController) getCharges(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	amountRaw := strings.TrimSpace(r.URL.Query().Get("amount"))
+	amount, _ := decimal.NewFromString(amountRaw)
+
 	req := models.GetChargesRequest{
-		Amount:       r.URL.Query().Get("amount"),
+		Amount:       amount,
 		FromCurrency: r.URL.Query().Get("fromCurrency"),
 	}
 	logRequest(r, req)

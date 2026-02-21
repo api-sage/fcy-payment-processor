@@ -112,6 +112,32 @@ WHERE account_number = $1`
 	return account, nil
 }
 
+func (r *AccountRepository) HasAccountForCustomerIDAndCurrency(ctx context.Context, customerID string, currency string) (bool, error) {
+	logger.Info("account repository has account for customer id and currency", logger.Fields{
+		"customerId": customerID,
+		"currency":   currency,
+	})
+
+	const query = `
+SELECT EXISTS (
+	SELECT 1
+	FROM accounts
+	WHERE customer_id = $1
+	  AND UPPER(currency) = UPPER($2)
+)`
+
+	var exists bool
+	if err := r.db.QueryRowContext(ctx, query, customerID, currency).Scan(&exists); err != nil {
+		logger.Error("account repository has account for customer id and currency failed", err, logger.Fields{
+			"customerId": customerID,
+			"currency":   currency,
+		})
+		return false, fmt.Errorf("check account by customer id and currency: %w", err)
+	}
+
+	return exists, nil
+}
+
 func (r *AccountRepository) DebitInternalAccount(ctx context.Context, accountNumber string, amount string) error {
 	logger.Info("account repository debit internal account", logger.Fields{
 		"accountNumber": accountNumber,

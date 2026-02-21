@@ -62,7 +62,7 @@ func (s *RateService) GetRate(ctx context.Context, req models.GetRateRequest) (c
 			ID:           0,
 			FromCurrency: fromCurrency,
 			ToCurrency:   toCurrency,
-			Rate:         "1.00000000",
+			Rate:         decimal.NewFromInt(1),
 			RateDate:     now.Format("2006-01-02"),
 			CreatedAt:    now.Format(time.RFC3339),
 		}
@@ -90,50 +90,38 @@ func (s *RateService) GetRate(ctx context.Context, req models.GetRateRequest) (c
 	return commons.SuccessResponse("rate fetched successfully", mapRateToResponse(rate)), nil
 }
 
-func (s *RateService) ConvertRate(ctx context.Context, amount string, fromCcy string, toCcy string) (string, string, string, error) {
-	trimmedAmount := strings.TrimSpace(amount)
+func (s *RateService) ConvertRate(ctx context.Context, amount decimal.Decimal, fromCcy string, toCcy string) (decimal.Decimal, decimal.Decimal, string, error) {
 	fromCurrency := strings.ToUpper(strings.TrimSpace(fromCcy))
 	toCurrency := strings.ToUpper(strings.TrimSpace(toCcy))
 
-	if trimmedAmount == "" {
-		return "", "", "", fmt.Errorf("amount is required")
-	}
 	if fromCurrency == "" {
-		return "", "", "", fmt.Errorf("fromCcy is required")
+		return decimal.Decimal{}, decimal.Decimal{}, "", fmt.Errorf("fromCcy is required")
 	}
 	if toCurrency == "" {
-		return "", "", "", fmt.Errorf("toCcy is required")
+		return decimal.Decimal{}, decimal.Decimal{}, "", fmt.Errorf("toCcy is required")
 	}
 	if len(fromCurrency) != 3 || len(toCurrency) != 3 {
-		return "", "", "", fmt.Errorf("fromCcy and toCcy must be 3 characters")
+		return decimal.Decimal{}, decimal.Decimal{}, "", fmt.Errorf("fromCcy and toCcy must be 3 characters")
 	}
 
-	parsedAmount, err := decimal.NewFromString(trimmedAmount)
-	if err != nil {
-		return "", "", "", fmt.Errorf("amount must be numeric: %w", err)
-	}
-	if parsedAmount.LessThanOrEqual(decimal.Zero) {
-		return "", "", "", fmt.Errorf("amount must be greater than zero")
+	if amount.LessThanOrEqual(decimal.Zero) {
+		return decimal.Decimal{}, decimal.Decimal{}, "", fmt.Errorf("amount must be greater than zero")
 	}
 	if fromCurrency == toCurrency {
-		return parsedAmount.StringFixed(8), "1.00000000", time.Now().UTC().Format("2006-01-02"), nil
+		return amount, decimal.NewFromInt(1), time.Now().UTC().Format("2006-01-02"), nil
 	}
 
 	rate, err := s.rateRepo.GetRate(ctx, fromCurrency, toCurrency)
 	if err != nil {
-		return "", "", "", err
+		return decimal.Decimal{}, decimal.Decimal{}, "", err
 	}
-
-	usedRate, parseErr := decimal.NewFromString(strings.TrimSpace(rate.Rate))
-	if parseErr != nil {
-		return "", "", "", fmt.Errorf("invalid stored rate: %w", parseErr)
-	}
+	usedRate := rate.Rate
 	if usedRate.Equal(decimal.Zero) {
-		return "", "", "", fmt.Errorf("rate cannot be zero")
+		return decimal.Decimal{}, decimal.Decimal{}, "", fmt.Errorf("rate cannot be zero")
 	}
 
-	converted := parsedAmount.Mul(usedRate)
-	return converted.StringFixed(8), usedRate.StringFixed(8), rate.RateDate.Format("2006-01-02"), nil
+	converted := amount.Mul(usedRate)
+	return converted, usedRate, rate.RateDate.Format("2006-01-02"), nil
 }
 
 func (s *RateService) GetCcyRates(ctx context.Context, req models.GetCcyRatesRequest) (commons.Response[models.GetCcyRatesResponse], error) {
@@ -159,7 +147,7 @@ func (s *RateService) GetCcyRates(ctx context.Context, req models.GetCcyRatesReq
 	}
 
 	response := models.GetCcyRatesResponse{
-		Amount:          strings.TrimSpace(req.Amount),
+		Amount:          req.Amount,
 		FromCcy:         strings.ToUpper(strings.TrimSpace(req.FromCcy)),
 		ToCcy:           strings.ToUpper(strings.TrimSpace(req.ToCcy)),
 		ConvertedAmount: convertedAmount,

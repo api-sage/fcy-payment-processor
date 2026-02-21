@@ -20,6 +20,10 @@ const defaultChargeMaxAmount = "20"
 const defaultInternalTransientAccountNumber = "0123456890"
 const defaultInternalChargesAccountNumber = "0123445521"
 const defaultInternalVATAccountNumber = "0125548976"
+const defaultExternalUSDGLAccountNumber = "0125548977"
+const defaultExternalGBPGLAccountNumber = "0125548978"
+const defaultExternalEURGLAccountNumber = "0125548979"
+const defaultExternalNGNGLAccountNumber = "0125548980"
 
 type Config struct {
 	DatabaseDSN                    string
@@ -34,6 +38,10 @@ type Config struct {
 	InternalTransientAccountNumber string
 	InternalChargesAccountNumber   string
 	InternalVATAccountNumber       string
+	ExternalUSDGLAccountNumber     string
+	ExternalGBPGLAccountNumber     string
+	ExternalEURGLAccountNumber     string
+	ExternalNGNGLAccountNumber     string
 }
 
 func Load() (Config, error) {
@@ -92,6 +100,26 @@ func Load() (Config, error) {
 		internalVATAccountNumber = defaultInternalVATAccountNumber
 	}
 
+	externalUSDGLAccountNumber := strings.TrimSpace(os.Getenv("EXTERNAL_USD_GL_ACCOUNT_NUMBER"))
+	if externalUSDGLAccountNumber == "" {
+		externalUSDGLAccountNumber = defaultExternalUSDGLAccountNumber
+	}
+
+	externalGBPGLAccountNumber := strings.TrimSpace(os.Getenv("EXTERNAL_GBP_GL_ACCOUNT_NUMBER"))
+	if externalGBPGLAccountNumber == "" {
+		externalGBPGLAccountNumber = defaultExternalGBPGLAccountNumber
+	}
+
+	externalEURGLAccountNumber := strings.TrimSpace(os.Getenv("EXTERNAL_EUR_GL_ACCOUNT_NUMBER"))
+	if externalEURGLAccountNumber == "" {
+		externalEURGLAccountNumber = defaultExternalEURGLAccountNumber
+	}
+
+	externalNGNGLAccountNumber := strings.TrimSpace(os.Getenv("EXTERNAL_NGN_GL_ACCOUNT_NUMBER"))
+	if externalNGNGLAccountNumber == "" {
+		externalNGNGLAccountNumber = defaultExternalNGNGLAccountNumber
+	}
+
 	return Config{
 		DatabaseDSN:                    normalizeConnectionString(conn),
 		MigrationsDir:                  filepath.Join("src", "migrations"),
@@ -105,6 +133,10 @@ func Load() (Config, error) {
 		InternalTransientAccountNumber: internalTransientAccountNumber,
 		InternalChargesAccountNumber:   internalChargesAccountNumber,
 		InternalVATAccountNumber:       internalVATAccountNumber,
+		ExternalUSDGLAccountNumber:     externalUSDGLAccountNumber,
+		ExternalGBPGLAccountNumber:     externalGBPGLAccountNumber,
+		ExternalEURGLAccountNumber:     externalEURGLAccountNumber,
+		ExternalNGNGLAccountNumber:     externalNGNGLAccountNumber,
 	}, nil
 }
 

@@ -136,7 +136,7 @@ const openAPI = `{
                 "required": ["accountNumber", "amount"],
                 "properties": {
                   "accountNumber": {"type": "string", "example": "0123456789"},
-                  "amount": {"type": "string", "example": "100.00"}
+                  "amount": {"type": "number", "format": "double", "example": 100.00}
                 }
               }
             }
@@ -264,7 +264,7 @@ const openAPI = `{
                 "type": "object",
                 "required": ["amount", "fromCcy", "toCcy"],
                 "properties": {
-                  "amount": {"type": "string", "example": "1500.00"},
+                  "amount": {"type": "number", "format": "double", "example": 1500.00},
                   "fromCcy": {"type": "string", "example": "USD"},
                   "toCcy": {"type": "string", "example": "NGN"}
                 }
@@ -298,6 +298,9 @@ const openAPI = `{
                   "debitAccountNumber",
                   "creditAccountNumber",
                   "beneficiaryBankCode",
+                  "transactionPIN",
+                  "debitBankName",
+                  "creditBankName",
                   "debitCurrency",
                   "creditCurrency",
                   "debitAmount",
@@ -307,9 +310,12 @@ const openAPI = `{
                   "debitAccountNumber": {"type": "string", "example": "0123456789"},
                   "creditAccountNumber": {"type": "string", "example": "0123456790"},
                   "beneficiaryBankCode": {"type": "string", "example": "100100"},
+                  "transactionPIN": {"type": "string", "example": "1234"},
+                  "debitBankName": {"type": "string", "example": "Grey"},
+                  "creditBankName": {"type": "string", "example": "Grey"},
                   "debitCurrency": {"type": "string", "example": "USD"},
                   "creditCurrency": {"type": "string", "example": "USD"},
-                  "debitAmount": {"type": "string", "example": "100.00"},
+                  "debitAmount": {"type": "number", "format": "double", "example": 100.00},
                   "narration": {
                     "type": "string",
                     "enum": [

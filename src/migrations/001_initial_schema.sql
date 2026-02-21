@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id VARCHAR(64) NOT NULL REFERENCES users(customer_id) ON DELETE CASCADE,
     account_number VARCHAR(32) NOT NULL UNIQUE,
-    currency CHAR(3) NOT NULL CHECK (currency IN ('USD', 'EUR', 'GBP')),
+    currency CHAR(3) NOT NULL CHECK (currency IN ('USD', 'EUR', 'GBP', 'NGN')),
     available_balance NUMERIC(20, 2) NOT NULL DEFAULT 0,
     ledger_balance NUMERIC(20, 2) NOT NULL DEFAULT 0,
     status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'FROZEN', 'CLOSED')),
@@ -37,8 +37,10 @@ CREATE TABLE IF NOT EXISTS transfers (
     debit_account_number VARCHAR(32) NOT NULL REFERENCES accounts(account_number),
     credit_account_number VARCHAR(32),
     beneficiary_bank_code VARCHAR(16),
-    debit_currency CHAR(3) NOT NULL CHECK (debit_currency IN ('USD', 'EUR', 'GBP')),
-    credit_currency CHAR(3) NOT NULL CHECK (credit_currency IN ('USD', 'EUR', 'GBP')),
+    debit_bank_name VARCHAR(255),
+    credit_bank_name VARCHAR(255),
+    debit_currency CHAR(3) NOT NULL CHECK (debit_currency IN ('USD', 'EUR', 'GBP', 'NGN')),
+    credit_currency CHAR(3) NOT NULL CHECK (credit_currency IN ('USD', 'EUR', 'GBP', 'NGN')),
     debit_amount NUMERIC(20, 2) NOT NULL,
     credit_amount NUMERIC(20, 2) NOT NULL,
     fcy_rate NUMERIC(20, 8) NOT NULL,
@@ -54,11 +56,12 @@ CREATE TABLE IF NOT EXISTS transfers (
 
 CREATE INDEX IF NOT EXISTS idx_transfers_status ON transfers(status);
 CREATE INDEX IF NOT EXISTS idx_transfers_external_refernece ON transfers(external_refernece);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_transfers_transaction_reference ON transfers(transaction_reference);
 
 CREATE TABLE IF NOT EXISTS rates (
     id BIGSERIAL PRIMARY KEY,
-    from_currency CHAR(3) NOT NULL CHECK (from_currency IN ('USD', 'EUR', 'GBP')),
-    to_currency CHAR(3) NOT NULL CHECK (to_currency IN ('USD', 'EUR', 'GBP')),
+    from_currency CHAR(3) NOT NULL CHECK (from_currency IN ('USD', 'EUR', 'GBP', 'NGN')),
+    to_currency CHAR(3) NOT NULL CHECK (to_currency IN ('USD', 'EUR', 'GBP', 'NGN')),
     rate NUMERIC(20, 8) NOT NULL,
     rate_date DATE NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -69,8 +72,10 @@ CREATE TABLE IF NOT EXISTS transient_account_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     transfer_id UUID NOT NULL REFERENCES transfers(id) ON DELETE CASCADE,
     external_refernece VARCHAR(64) NOT NULL,
+    debited_account VARCHAR(32),
+    credited_account VARCHAR(32),
     entry_type VARCHAR(16) NOT NULL CHECK (entry_type IN ('DEBIT', 'CREDIT')),
-    currency CHAR(3) NOT NULL CHECK (currency IN ('USD', 'EUR', 'GBP')),
+    currency CHAR(3) NOT NULL CHECK (currency IN ('USD', 'EUR', 'GBP', 'NGN')),
     amount NUMERIC(20, 2) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -82,7 +87,7 @@ CREATE TABLE IF NOT EXISTS transient_accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_number VARCHAR(32) NOT NULL UNIQUE,
     account_description VARCHAR(255) NOT NULL,
-    currency CHAR(3) NOT NULL DEFAULT 'FCY',
+    currency CHAR(3) NOT NULL DEFAULT 'MCY',
     available_balance NUMERIC(20, 2) NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

@@ -19,6 +19,39 @@ func NewRateRepository(db *sql.DB) *RateRepository {
 	return &RateRepository{db: db}
 }
 
+func (r *RateRepository) EnsureDefaultRates(ctx context.Context) error {
+	logger.Info("rate repository ensure default rates", nil)
+
+	const query = `
+INSERT INTO rates (
+	from_currency,
+	to_currency,
+	rate,
+	rate_date
+) VALUES
+	('USD', 'NGN', 1338.38005900, CURRENT_DATE),
+	('NGN', 'USD', 0.00074717, CURRENT_DATE),
+	('EUR', 'NGN', 1580.48135373, CURRENT_DATE),
+	('NGN', 'EUR', 0.00063272, CURRENT_DATE),
+	('GBP', 'NGN', 1810.06486117, CURRENT_DATE),
+	('NGN', 'GBP', 0.00055247, CURRENT_DATE),
+	('EUR', 'USD', 1.18450000, CURRENT_DATE),
+	('USD', 'EUR', 0.84423808, CURRENT_DATE),
+	('EUR', 'GBP', 0.87240000, CURRENT_DATE),
+	('GBP', 'EUR', 1.14626318, CURRENT_DATE),
+	('GBP', 'USD', 1.35774874, CURRENT_DATE),
+	('USD', 'GBP', 0.73651330, CURRENT_DATE)
+ON CONFLICT (from_currency, to_currency, rate_date) DO NOTHING`
+
+	if _, err := r.db.ExecContext(ctx, query); err != nil {
+		logger.Error("rate repository ensure default rates failed", err, nil)
+		return fmt.Errorf("ensure default rates: %w", err)
+	}
+
+	logger.Info("rate repository ensure default rates success", nil)
+	return nil
+}
+
 func (r *RateRepository) GetRates(ctx context.Context) ([]domain.Rate, error) {
 	logger.Info("rate repository get rates", nil)
 

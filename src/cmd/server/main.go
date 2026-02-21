@@ -14,9 +14,12 @@ import (
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/memory"
 	"github.com/api-sage/ccy-payment-processor/src/internal/config"
 	"github.com/api-sage/ccy-payment-processor/src/internal/usecase/services"
+	"github.com/shopspring/decimal"
 )
 
 func main() {
+	decimal.MarshalJSONWithoutQuotes = true
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("load config: %v", err)
@@ -49,6 +52,9 @@ func main() {
 	participantBankController := controller.NewParticipantBankController(participantBankService)
 
 	rateRepo := implementations.NewRateRepository(db)
+	if err := rateRepo.EnsureDefaultRates(ctx); err != nil {
+		log.Fatalf("ensure default rates: %v", err)
+	}
 	rateService := services.NewRateService(rateRepo)
 	rateController := controller.NewRateController(rateService)
 
@@ -63,19 +69,37 @@ func main() {
 
 	transferRepo := implementations.NewTransferRepository(db)
 	transientAccountRepo := implementations.NewTransientAccountRepository(db)
+	if err := transientAccountRepo.EnsureInternalAccounts(
+		ctx,
+		cfg.InternalTransientAccountNumber,
+		cfg.InternalChargesAccountNumber,
+		cfg.InternalVATAccountNumber,
+		cfg.ExternalUSDGLAccountNumber,
+		cfg.ExternalGBPGLAccountNumber,
+		cfg.ExternalEURGLAccountNumber,
+		cfg.ExternalNGNGLAccountNumber,
+	); err != nil {
+		log.Fatalf("ensure transient accounts: %v", err)
+	}
 	transientAccountTransactionRepo := implementations.NewTransientAccountTransactionRepository(db)
 	transferService := services.NewTransferService(
 		transferRepo,
 		accountRepo,
 		transientAccountRepo,
 		transientAccountTransactionRepo,
+		participantBankRepo,
 		rateRepo,
+		userService,
 		rateService,
 		chargesService,
 		cfg.GreyBankCode,
 		cfg.InternalTransientAccountNumber,
 		cfg.InternalChargesAccountNumber,
 		cfg.InternalVATAccountNumber,
+		cfg.ExternalUSDGLAccountNumber,
+		cfg.ExternalGBPGLAccountNumber,
+		cfg.ExternalEURGLAccountNumber,
+		cfg.ExternalNGNGLAccountNumber,
 	)
 	transferController := controller.NewTransferController(transferService)
 
