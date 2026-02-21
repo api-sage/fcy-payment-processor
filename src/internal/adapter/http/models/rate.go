@@ -8,12 +8,12 @@ import (
 )
 
 type RateResponse struct {
-	ID           int64  `json:"id"`
-	FromCurrency string `json:"fromCurrency"`
-	ToCurrency   string `json:"toCurrency"`
-	Rate         string `json:"Rate"`
-	RateDate     string `json:"rateDate"`
-	CreatedAt    string `json:"createdAt"`
+	ID           int64           `json:"id"`
+	FromCurrency string          `json:"fromCurrency"`
+	ToCurrency   string          `json:"toCurrency"`
+	Rate         decimal.Decimal `json:"rate"`
+	RateDate     string          `json:"rateDate"`
+	CreatedAt    string          `json:"createdAt"`
 }
 
 type GetRateRequest struct {
@@ -48,27 +48,19 @@ func (r GetRateRequest) Validate() error {
 }
 
 type GetCcyRatesRequest struct {
-	Amount  string `json:"amount"`
-	FromCcy string `json:"fromCcy"`
-	ToCcy   string `json:"toCcy"`
+	Amount  decimal.Decimal `json:"amount"`
+	FromCcy string          `json:"fromCcy"`
+	ToCcy   string          `json:"toCcy"`
 }
 
 func (r GetCcyRatesRequest) Validate() error {
 	var errs []string
 
-	amount := strings.TrimSpace(r.Amount)
 	fromCcy := strings.ToUpper(strings.TrimSpace(r.FromCcy))
 	toCcy := strings.ToUpper(strings.TrimSpace(r.ToCcy))
 
-	if amount == "" {
-		errs = append(errs, "amount is required")
-	} else {
-		parsedAmount, err := decimal.NewFromString(amount)
-		if err != nil {
-			errs = append(errs, "amount must be numeric")
-		} else if parsedAmount.LessThanOrEqual(decimal.Zero) {
-			errs = append(errs, "amount must be greater than zero")
-		}
+	if r.Amount.LessThanOrEqual(decimal.Zero) {
+		errs = append(errs, "amount must be greater than zero")
 	}
 
 	if fromCcy == "" {
@@ -91,10 +83,10 @@ func (r GetCcyRatesRequest) Validate() error {
 }
 
 type GetCcyRatesResponse struct {
-	Amount          string `json:"amount"`
-	FromCcy         string `json:"fromCcy"`
-	ToCcy           string `json:"toCcy"`
-	ConvertedAmount string `json:"convertedAmount"`
-	RateUsed        string `json:"rateUsed"`
-	RateDate        string `json:"rateDate"`
+	Amount          decimal.Decimal `json:"amount"`
+	FromCcy         string          `json:"fromCcy"`
+	ToCcy           string          `json:"toCcy"`
+	ConvertedAmount decimal.Decimal `json:"convertedAmount"`
+	RateUsed        decimal.Decimal `json:"rateUsed"`
+	RateDate        string          `json:"rateDate"`
 }

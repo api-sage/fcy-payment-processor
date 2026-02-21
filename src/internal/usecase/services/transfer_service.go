@@ -140,16 +140,13 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		return commons.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
 	}
 
-	convertedAmount, rateUsed, _, err := s.rateService.ConvertRate(ctx, debitAmount.String(), debitCurrency, creditCurrency)
+	convertedAmount, rateUsed, _, err := s.rateService.ConvertRate(ctx, debitAmount, debitCurrency, creditCurrency)
 	_, _, charge, vat, totalDebitAmount, err := s.chargeService.GetCharges(ctx, debitAmount.String(), debitCurrency)
 	if err != nil {
 		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 	}
 
-	creditAmount, err := decimal.NewFromString(strings.TrimSpace(convertedAmount))
-	if err != nil {
-		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
-	}
+	creditAmount := convertedAmount
 
 	chargeAmount, err := decimal.NewFromString(strings.TrimSpace(charge))
 	if err != nil {
@@ -195,7 +192,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 			CreditCurrency:       creditCurrency,
 			DebitAmount:          debitAmount.StringFixed(2),
 			CreditAmount:         creditAmount.StringFixed(2),
-			FCYRate:              rateUsed,
+			FCYRate:              rateUsed.StringFixed(8),
 			ChargeAmount:         chargeAmount.StringFixed(2),
 			VATAmount:            vatAmount.StringFixed(2),
 			Narration:            stringPtr(narration),
@@ -344,10 +341,7 @@ func (s *TransferService) convertFeesToUSD(
 		return decimal.Zero, decimal.Zero, fmt.Errorf("rate lookup failed")
 	}
 
-	rateValue, parseErr := decimal.NewFromString(strings.TrimSpace(rateResp.Data.Rate))
-	if parseErr != nil {
-		return decimal.Zero, decimal.Zero, fmt.Errorf("invalid USD rate: %w", parseErr)
-	}
+	rateValue := rateResp.Data.Rate
 	if rateValue.LessThanOrEqual(decimal.Zero) {
 		return decimal.Zero, decimal.Zero, fmt.Errorf("usd rate must be greater than zero")
 	}

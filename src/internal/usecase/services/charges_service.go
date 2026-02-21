@@ -134,14 +134,10 @@ func (s *ChargesService) GetCharges(ctx context.Context, amount string, fromCurr
 func (s *ChargesService) getUSDToCurrencyRate(ctx context.Context, currency string) (decimal.Decimal, error) {
 	rate, err := s.rateRepo.GetRate(ctx, "USD", currency)
 	if err == nil {
-		parsed, parseErr := decimal.NewFromString(strings.TrimSpace(rate.Rate))
-		if parseErr != nil {
-			return decimal.Decimal{}, fmt.Errorf("invalid stored rate: %w", parseErr)
-		}
-		if parsed.LessThanOrEqual(decimal.Zero) {
+		if rate.Rate.LessThanOrEqual(decimal.Zero) {
 			return decimal.Decimal{}, fmt.Errorf("stored rate must be greater than zero")
 		}
-		return parsed, nil
+		return rate.Rate, nil
 	}
 
 	reverseRate, reverseErr := s.rateRepo.GetRate(ctx, currency, "USD")
@@ -149,28 +145,20 @@ func (s *ChargesService) getUSDToCurrencyRate(ctx context.Context, currency stri
 		return decimal.Decimal{}, err
 	}
 
-	parsedReverse, parseErr := decimal.NewFromString(strings.TrimSpace(reverseRate.Rate))
-	if parseErr != nil {
-		return decimal.Decimal{}, fmt.Errorf("invalid stored reverse rate: %w", parseErr)
-	}
-	if parsedReverse.LessThanOrEqual(decimal.Zero) {
+	if reverseRate.Rate.LessThanOrEqual(decimal.Zero) {
 		return decimal.Decimal{}, fmt.Errorf("stored reverse rate must be greater than zero")
 	}
 
-	return decimal.NewFromInt(1).Div(parsedReverse), nil
+	return decimal.NewFromInt(1).Div(reverseRate.Rate), nil
 }
 
 func (s *ChargesService) getCurrencyToUSDRate(ctx context.Context, currency string) (decimal.Decimal, error) {
 	rate, err := s.rateRepo.GetRate(ctx, currency, "USD")
 	if err == nil {
-		parsed, parseErr := decimal.NewFromString(strings.TrimSpace(rate.Rate))
-		if parseErr != nil {
-			return decimal.Decimal{}, fmt.Errorf("invalid stored rate: %w", parseErr)
-		}
-		if parsed.LessThanOrEqual(decimal.Zero) {
+		if rate.Rate.LessThanOrEqual(decimal.Zero) {
 			return decimal.Decimal{}, fmt.Errorf("stored rate must be greater than zero")
 		}
-		return parsed, nil
+		return rate.Rate, nil
 	}
 
 	reverseRate, reverseErr := s.rateRepo.GetRate(ctx, "USD", currency)
@@ -178,13 +166,9 @@ func (s *ChargesService) getCurrencyToUSDRate(ctx context.Context, currency stri
 		return decimal.Decimal{}, err
 	}
 
-	parsedReverse, parseErr := decimal.NewFromString(strings.TrimSpace(reverseRate.Rate))
-	if parseErr != nil {
-		return decimal.Decimal{}, fmt.Errorf("invalid stored reverse rate: %w", parseErr)
-	}
-	if parsedReverse.LessThanOrEqual(decimal.Zero) {
+	if reverseRate.Rate.LessThanOrEqual(decimal.Zero) {
 		return decimal.Decimal{}, fmt.Errorf("stored reverse rate must be greater than zero")
 	}
 
-	return decimal.NewFromInt(1).Div(parsedReverse), nil
+	return decimal.NewFromInt(1).Div(reverseRate.Rate), nil
 }

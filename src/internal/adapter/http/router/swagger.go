@@ -264,7 +264,7 @@ const openAPI = `{
                 "type": "object",
                 "required": ["amount", "fromCcy", "toCcy"],
                 "properties": {
-                  "amount": {"type": "string", "example": "1500.00"},
+                  "amount": {"type": "number", "format": "double", "example": 1500.00},
                   "fromCcy": {"type": "string", "example": "USD"},
                   "toCcy": {"type": "string", "example": "NGN"}
                 }
