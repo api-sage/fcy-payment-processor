@@ -12,6 +12,16 @@ For solution design artifacts, refer to the `docs/` directory for:
 - ERD
 - sequence flow
 
+## Testing philosophy
+
+The testing approach in this project focuses on correctness of financial behavior and transfer safety:
+- Business-rule-first tests for core use-case services.
+- Explicit negative-path coverage for validation and failure cases.
+- Mock-based unit tests around service boundaries to keep logic isolated.
+- Incremental, reviewable test additions per feature/task.
+- Priority on transfer integrity (debit/credit/charges/vat/settlement behavior) over broad but shallow coverage.
+- A TDD-leaning flow would likely reduce implementation iterations and rework, but it increases upfront delivery time, which was a trade-off in this time-sensitive project.
+
 ## Run with Docker Compose
 
 1. Install Docker + Docker Compose and ensure Docker daemon is running.

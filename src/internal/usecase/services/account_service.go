@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -13,21 +12,25 @@ import (
 	"github.com/api-sage/fcy-payment-processor/src/internal/commons"
 	"github.com/api-sage/fcy-payment-processor/src/internal/domain"
 	"github.com/api-sage/fcy-payment-processor/src/internal/logger"
+	"github.com/shopspring/decimal"
 )
 
 type AccountService struct {
 	accountRepo         repo_interfaces.AccountRepository
+	userRepo            domain.UserRepository
 	participantBankRepo domain.ParticipantBankRepository
 	greyBankCode        string
 }
 
 func NewAccountService(
 	accountRepo repo_interfaces.AccountRepository,
+	userRepo domain.UserRepository,
 	participantBankRepo domain.ParticipantBankRepository,
 	greyBankCode string,
 ) *AccountService {
 	return &AccountService{
 		accountRepo:         accountRepo,
+		userRepo:            userRepo,
 		participantBankRepo: participantBankRepo,
 		greyBankCode:        strings.TrimSpace(greyBankCode),
 	}
@@ -172,10 +175,27 @@ func (s *AccountService) GetAccount(ctx context.Context, accountNumber string, b
 		return commons.ErrorResponse[models.GetAccountResponse]("failed to get account", "Unable to fetch account right now"), err
 	}
 
+	user, err := s.userRepo.GetByCustomerID(ctx, account.CustomerID)
+	if err != nil {
+		logger.Error("account service get user for account name failed", err, logger.Fields{
+			"accountNumber": accountNumber,
+			"customerId":    account.CustomerID,
+		})
+		if errors.Is(err, commons.ErrRecordNotFound) {
+			return commons.ErrorResponse[models.GetAccountResponse]("User not found"), err
+		}
+		return commons.ErrorResponse[models.GetAccountResponse]("failed to get account", "Unable to fetch account right now"), err
+	}
+
+	accountName := strings.TrimSpace(strings.Join([]string{
+		strings.TrimSpace(user.FirstName),
+		strings.TrimSpace(user.LastName),
+	}, " "))
+
 	response := models.GetAccountResponse{
 		ID:               account.ID,
 		CustomerID:       account.CustomerID,
-		AccountName:      account.CustomerID,
+		AccountName:      accountName,
 		AccountNumber:    account.AccountNumber,
 		BankCode:         bankCode,
 		BankName:         "Grey",
@@ -207,7 +227,7 @@ func (s *AccountService) DepositFunds(ctx context.Context, req models.DepositFun
 	}
 
 	accountNumber := strings.TrimSpace(req.AccountNumber)
-	amount := strings.TrimSpace(req.Amount)
+	amount := req.Amount
 
 	if err := s.accountRepo.DepositFunds(ctx, accountNumber, amount); err != nil {
 		logger.Error("account service deposit funds failed", err, logger.Fields{
@@ -248,21 +268,15 @@ func (s *AccountService) DepositFunds(ctx context.Context, req models.DepositFun
 	return commons.SuccessResponse("funds deposited successfully", response), nil
 }
 
-func parseBalance(raw string) (string, error) {
-	if strings.TrimSpace(raw) == "" {
-		return "0.00", nil
+func parseBalance(raw *decimal.Decimal) (decimal.Decimal, error) {
+	if raw == nil {
+		return decimal.Zero, nil
+	}
+	if raw.LessThan(decimal.Zero) {
+		return decimal.Zero, fmt.Errorf("initialDeposit cannot be negative")
 	}
 
-	parsed, err := strconv.ParseFloat(strings.TrimSpace(raw), 64)
-	if err != nil {
-		return "", fmt.Errorf("initialDeposit must be a valid number: %w", err)
-	}
-
-	if parsed < 0 {
-		return "", fmt.Errorf("initialDeposit cannot be negative")
-	}
-
-	return fmt.Sprintf("%.2f", parsed), nil
+	return raw.Round(2), nil
 }
 
 func generateAccountNumber() string {

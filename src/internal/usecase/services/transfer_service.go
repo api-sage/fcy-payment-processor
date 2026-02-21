@@ -561,6 +561,7 @@ func (s *TransferService) convertFeesToUSD(
 func mapTransferToResponse(transfer domain.Transfer, sumTotal decimal.Decimal) models.InternalTransferResponse {
 	return models.InternalTransferResponse{
 		TransactionReference: valueOrEmpty(transfer.TransactionReference),
+		ExternalReference:    valueOrEmpty(transfer.ExternalRefernece),
 		DebitAccountNumber:   transfer.DebitAccountNumber,
 		CreditAccountNumber:  valueOrEmpty(transfer.CreditAccountNumber),
 		BeneficiaryBankCode:  valueOrEmpty(transfer.BeneficiaryBankCode),

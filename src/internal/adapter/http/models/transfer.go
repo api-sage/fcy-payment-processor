@@ -84,6 +84,7 @@ func (r InternalTransferRequest) Validate() error {
 
 type InternalTransferResponse struct {
 	TransactionReference string           `json:"transactionReference"`
+	ExternalReference    string           `json:"externalReference"`
 	DebitAccountNumber   string           `json:"debitAccountNumber"`
 	CreditAccountNumber  string           `json:"creditAccountNumber"`
 	BeneficiaryBankCode  string           `json:"beneficiaryBankCode"`

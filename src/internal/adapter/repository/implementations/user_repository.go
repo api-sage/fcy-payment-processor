@@ -107,6 +107,38 @@ WHERE id = $1`
 	return user, nil
 }
 
+func (r *UserRepository) GetByCustomerID(ctx context.Context, customerID string) (domain.User, error) {
+	logger.Info("user repository get by customer id", logger.Fields{
+		"customerId": customerID,
+	})
+
+	const query = `
+SELECT id, customer_id, first_name, middle_name, last_name, dob, phone_number, id_type, id_number, kyc_level, transaction_pin_hash, created_at, updated_at
+FROM users
+WHERE customer_id = $1`
+
+	var user domain.User
+	if err := scanUser(r.db.QueryRowContext(ctx, query, customerID), &user); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Info("user repository record not found", logger.Fields{
+				"customerId": customerID,
+			})
+			return domain.User{}, commons.ErrRecordNotFound
+		}
+		logger.Error("user repository get by customer id failed", err, logger.Fields{
+			"customerId": customerID,
+		})
+		return domain.User{}, fmt.Errorf("get user by customer id: %w", err)
+	}
+
+	logger.Info("user repository get by customer id success", logger.Fields{
+		"userId":     user.ID,
+		"customerId": user.CustomerID,
+	})
+
+	return user, nil
+}
+
 func (r *UserRepository) Update(ctx context.Context, user domain.User) (domain.User, error) {
 	logger.Info("user repository update", logger.Fields{
 		"userId":     user.ID,

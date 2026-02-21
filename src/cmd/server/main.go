@@ -40,13 +40,13 @@ func main() {
 
 	participantBankRepo := memory.NewParticipantBankRepository()
 
-	accountRepo := implementations.NewAccountRepository(db)
-	accountService := services.NewAccountService(accountRepo, participantBankRepo, cfg.GreyBankCode)
-	accountController := controller.NewAccountController(accountService)
-
 	userRepo := implementations.NewUserRepository(db)
 	userService := services.NewUserService(userRepo)
 	userController := controller.NewUserController(userService)
+
+	accountRepo := implementations.NewAccountRepository(db)
+	accountService := services.NewAccountService(accountRepo, userRepo, participantBankRepo, cfg.GreyBankCode)
+	accountController := controller.NewAccountController(accountService)
 
 	participantBankService := services.NewParticipantBankService(participantBankRepo)
 	participantBankController := controller.NewParticipantBankController(participantBankService)

@@ -68,15 +68,42 @@ const openAPI = `{
                 "required": ["customerId", "currency"],
                 "properties": {
                   "customerId": {"type": "string"},
-                  "currency": {"type": "string", "enum": ["USD", "EUR", "GBP"]},
-                  "initialDeposit": {"type": "string"}
+                  "currency": {"type": "string", "enum": ["USD", "EUR", "GBP", "NGN"]},
+                  "initialDeposit": {"type": "number", "format": "double", "example": 100.00}
                 }
               }
             }
           }
         },
         "responses": {
-          "201": {"description": "Created"},
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {"type": "boolean"},
+                    "message": {"type": "string"},
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {"type": "string"},
+                        "customerId": {"type": "string"},
+                        "accountNumber": {"type": "string"},
+                        "currency": {"type": "string"},
+                        "availableBalance": {"type": "number", "format": "double", "example": 100.00},
+                        "ledgerBalance": {"type": "number", "format": "double", "example": 100.00},
+                        "status": {"type": "string"},
+                        "createdAt": {"type": "string"},
+                        "updatedAt": {"type": "string"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "400": {"description": "Validation error"},
           "401": {"description": "Unauthorized"},
           "500": {"description": "Server error"}
@@ -112,7 +139,37 @@ const openAPI = `{
           }
         ],
         "responses": {
-          "200": {"description": "Account fetched"},
+          "200": {
+            "description": "Account fetched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {"type": "boolean"},
+                    "message": {"type": "string"},
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {"type": "string"},
+                        "customerId": {"type": "string"},
+                        "accountName": {"type": "string"},
+                        "accountNumber": {"type": "string"},
+                        "bankCode": {"type": "string"},
+                        "bankName": {"type": "string"},
+                        "currency": {"type": "string"},
+                        "availableBalance": {"type": "number", "format": "double", "example": 100.00},
+                        "ledgerBalance": {"type": "number", "format": "double", "example": 100.00},
+                        "status": {"type": "string"},
+                        "createdAt": {"type": "string"},
+                        "updatedAt": {"type": "string"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "400": {"description": "Validation error"},
           "401": {"description": "Unauthorized"},
           "500": {"description": "Server error"}
@@ -143,7 +200,30 @@ const openAPI = `{
           }
         },
         "responses": {
-          "200": {"description": "Deposit successful"},
+          "200": {
+            "description": "Deposit successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {"type": "boolean"},
+                    "message": {"type": "string"},
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accountNumber": {"type": "string"},
+                        "currency": {"type": "string"},
+                        "depositedAmount": {"type": "number", "format": "double", "example": 100.00},
+                        "availableBalance": {"type": "number", "format": "double", "example": 500.00},
+                        "ledgerBalance": {"type": "number", "format": "double", "example": 500.00}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "400": {"description": "Validation error"},
           "401": {"description": "Unauthorized"},
           "404": {"description": "Account not found"},
@@ -226,8 +306,9 @@ const openAPI = `{
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "example": "100.00"
+              "type": "number",
+              "format": "double",
+              "example": 100.00
             }
           },
           {

@@ -179,6 +179,14 @@ External transfer flow
 
 9) Design decisions, trade-offs, and improvements with more time
 -----------------------------------------------------------------
+Delivery and testing approach
+- Current decision:
+  - Testing was implemented pragmatically during feature delivery, with strong focus on core transfer and money-movement correctness.
+- Trade-off:
+  - Faster delivery under tight timelines, but more implementation-feedback iterations compared to strict test-first development.
+- Improvement plan:
+  - Adopt a more TDD-leaning flow for critical financial logic to reduce rework and iteration count, while balancing the additional upfront time this requires.
+
 Security and data privacy
 - Current decision:
   - Transaction PIN is used for user-level authorization.
