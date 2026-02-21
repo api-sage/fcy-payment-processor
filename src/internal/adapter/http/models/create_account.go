@@ -23,8 +23,8 @@ func (r CreateAccountRequest) Validate() error {
 	ccy := strings.ToUpper(strings.TrimSpace(r.Currency))
 	if ccy == "" {
 		errs = append(errs, "currency is required")
-	} else if ccy != "USD" && ccy != "EUR" && ccy != "GBP" {
-		errs = append(errs, "currency must be one of USD, EUR, GBP")
+	} else if ccy != "USD" && ccy != "EUR" && ccy != "GBP" && ccy != "NGN" {
+		errs = append(errs, "currency must be one of USD, EUR, GBP, NGN")
 	}
 
 	if strings.TrimSpace(r.InitialDeposit) != "" {

@@ -71,6 +71,10 @@ func main() {
 		cfg.InternalTransientAccountNumber,
 		cfg.InternalChargesAccountNumber,
 		cfg.InternalVATAccountNumber,
+		cfg.ExternalUSDGLAccountNumber,
+		cfg.ExternalGBPGLAccountNumber,
+		cfg.ExternalEURGLAccountNumber,
+		cfg.ExternalNGNGLAccountNumber,
 	); err != nil {
 		log.Fatalf("ensure internal transient accounts: %v", err)
 	}

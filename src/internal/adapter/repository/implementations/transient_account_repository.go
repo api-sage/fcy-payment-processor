@@ -23,11 +23,20 @@ func (r *TransientAccountRepository) EnsureInternalAccounts(
 	internalTransientAccountNumber string,
 	internalChargesAccountNumber string,
 	internalVATAccountNumber string,
+	externalUSDGLAccountNumber string,
+	externalGBPGLAccountNumber string,
+	externalEURGLAccountNumber string,
+	externalNGNGLAccountNumber string,
+
 ) error {
 	logger.Info("transient account repository ensure internal accounts", logger.Fields{
 		"internalTransientAccountNumber": internalTransientAccountNumber,
 		"internalChargesAccountNumber":   internalChargesAccountNumber,
 		"internalVATAccountNumber":       internalVATAccountNumber,
+		"externalUSDGLAccountNumber":     externalUSDGLAccountNumber,
+		"externalGBPGLAccountNumber":     externalGBPGLAccountNumber,
+		"externalEURGLAccountNumber":     externalEURGLAccountNumber,
+		"externalNGNGLAccountNumber":     externalNGNGLAccountNumber,
 	})
 
 	const query = `
@@ -38,8 +47,12 @@ INSERT INTO transient_accounts (
 	available_balance
 ) VALUES
 	($1, 'Internal Transient Account', 'MCY', 0.00),
-	($2, 'Internal Charges Account', 'USD', 5.00),
-	($3, 'Internal VAT Account', 'USD', 22.50)
+	($2, 'Internal Charges Account', 'USD', 0.00),
+	($3, 'Internal VAT Account', 'USD', 0.00),
+	($4, 'External USD GL Account', 'USD', 0.00),
+	($5, 'External GBP GL Account', 'GBP', 0.00),
+	($6, 'External EUR GL Account', 'EUR', 0.00),
+	($7, 'External NGN GL Account', 'NGN', 0.00)
 ON CONFLICT (account_number) DO NOTHING`
 
 	if _, err := r.db.ExecContext(
@@ -48,6 +61,10 @@ ON CONFLICT (account_number) DO NOTHING`
 		internalTransientAccountNumber,
 		internalChargesAccountNumber,
 		internalVATAccountNumber,
+		externalUSDGLAccountNumber,
+		externalGBPGLAccountNumber,
+		externalEURGLAccountNumber,
+		externalNGNGLAccountNumber,
 	); err != nil {
 		logger.Error("transient account repository ensure internal accounts failed", err, nil)
 		return fmt.Errorf("ensure internal transient accounts: %w", err)
