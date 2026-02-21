@@ -12,5 +12,20 @@ type TransferRepository interface {
 	Update(ctx context.Context, transfer domain.Transfer) (domain.Transfer, error)
 	Get(ctx context.Context, id string, transactionReference string, externalRefernece string) (domain.Transfer, error)
 	ProcessInternalTransfer(ctx context.Context, debitAccountNumber string, debitAmount decimal.Decimal, suspenseAccountNumber string, debitSuspenseAccountAmount decimal.Decimal, creditAccountNumber string, creditAmount decimal.Decimal) error
+	ProcessExternalTransfer(
+		ctx context.Context,
+		debitAccountNumber string,
+		totalDebitAmount decimal.Decimal,
+		suspenseAccountNumber string,
+		beneficiaryAmount decimal.Decimal,
+		externalAccountNumber string,
+		externalAccountCurrency string,
+		chargeAmount decimal.Decimal,
+		vatAmount decimal.Decimal,
+		chargesAccountNumber string,
+		vatAccountNumber string,
+		chargeUSD decimal.Decimal,
+		vatUSD decimal.Decimal,
+	) error
 	UpdateStatus(ctx context.Context, transferID string, status domain.TransferStatus) error
 }

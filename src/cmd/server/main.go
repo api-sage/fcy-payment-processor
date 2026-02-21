@@ -87,6 +87,7 @@ func main() {
 		accountRepo,
 		transientAccountRepo,
 		transientAccountTransactionRepo,
+		participantBankRepo,
 		rateRepo,
 		userService,
 		rateService,
@@ -95,6 +96,10 @@ func main() {
 		cfg.InternalTransientAccountNumber,
 		cfg.InternalChargesAccountNumber,
 		cfg.InternalVATAccountNumber,
+		cfg.ExternalUSDGLAccountNumber,
+		cfg.ExternalGBPGLAccountNumber,
+		cfg.ExternalEURGLAccountNumber,
+		cfg.ExternalNGNGLAccountNumber,
 	)
 	transferController := controller.NewTransferController(transferService)
 

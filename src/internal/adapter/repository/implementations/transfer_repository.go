@@ -406,6 +406,121 @@ WHERE account_number = $1
 	return nil
 }
 
+func (r *TransferRepository) ProcessExternalTransfer(
+	ctx context.Context,
+	debitAccountNumber string,
+	totalDebitAmount decimal.Decimal,
+	suspenseAccountNumber string,
+	beneficiaryAmount decimal.Decimal,
+	externalAccountNumber string,
+	externalAccountCurrency string,
+	chargeAmount decimal.Decimal,
+	vatAmount decimal.Decimal,
+	chargesAccountNumber string,
+	vatAccountNumber string,
+	chargeUSD decimal.Decimal,
+	vatUSD decimal.Decimal,
+) error {
+	logger.Info("transfer repository process external transfer", logger.Fields{
+		"debitAccountNumber":      debitAccountNumber,
+		"totalDebitAmount":        totalDebitAmount,
+		"suspenseAccountNumber":   suspenseAccountNumber,
+		"beneficiaryAmount":       beneficiaryAmount,
+		"externalAccountNumber":   externalAccountNumber,
+		"externalAccountCurrency": externalAccountCurrency,
+		"chargeAmount":            chargeAmount,
+		"vatAmount":               vatAmount,
+		"chargeUSD":               chargeUSD,
+		"vatUSD":                  vatUSD,
+	})
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		logger.Error("transfer repository begin external tx failed", err, nil)
+		return fmt.Errorf("begin external transfer transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	debitSenderQuery := `
+UPDATE accounts
+SET available_balance = available_balance - $2::numeric,
+    ledger_balance = ledger_balance - $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND status = 'ACTIVE'
+  AND available_balance >= $2::numeric`
+	if _, err = execRequiredRows(ctx, tx, debitSenderQuery, debitAccountNumber, totalDebitAmount); err != nil {
+		return err
+	}
+
+	creditSuspenseQuery := `
+UPDATE transient_accounts
+SET available_balance = available_balance + $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1`
+	if _, err = execRequiredRows(ctx, tx, creditSuspenseQuery, suspenseAccountNumber, totalDebitAmount); err != nil {
+		return err
+	}
+
+	debitSuspenseForBeneficiaryQuery := `
+UPDATE transient_accounts
+SET available_balance = available_balance - $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND available_balance >= $2::numeric`
+	if _, err = execRequiredRows(ctx, tx, debitSuspenseForBeneficiaryQuery, suspenseAccountNumber, beneficiaryAmount); err != nil {
+		return err
+	}
+
+	creditExternalAccountQuery := `
+UPDATE transient_accounts
+SET available_balance = available_balance + $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND UPPER(currency) = UPPER($3)`
+	if _, err = execRequiredRows(ctx, tx, creditExternalAccountQuery, externalAccountNumber, beneficiaryAmount, externalAccountCurrency); err != nil {
+		return err
+	}
+
+	debitSuspenseForFeesQuery := `
+UPDATE transient_accounts
+SET available_balance = available_balance - ($2::numeric + $3::numeric),
+    updated_at = NOW()
+WHERE account_number = $1
+  AND available_balance >= ($2::numeric + $3::numeric)`
+	if _, err = execRequiredRows(ctx, tx, debitSuspenseForFeesQuery, suspenseAccountNumber, chargeAmount, vatAmount); err != nil {
+		return err
+	}
+
+	creditFeeAccountQuery := `
+UPDATE transient_accounts
+SET available_balance = available_balance + $2::numeric,
+    updated_at = NOW()
+WHERE account_number = $1
+  AND UPPER(currency) = 'USD'`
+	if _, err = execRequiredRows(ctx, tx, creditFeeAccountQuery, chargesAccountNumber, chargeUSD); err != nil {
+		return err
+	}
+	if _, err = execRequiredRows(ctx, tx, creditFeeAccountQuery, vatAccountNumber, vatUSD); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		logger.Error("transfer repository commit external tx failed", err, nil)
+		return fmt.Errorf("commit external transfer transaction: %w", err)
+	}
+
+	logger.Info("transfer repository process external transfer success", logger.Fields{
+		"debitAccountNumber":    debitAccountNumber,
+		"externalAccountNumber": externalAccountNumber,
+	})
+	return nil
+}
+
 func (r *TransferRepository) UpdateStatus(ctx context.Context, transferID string, status domain.TransferStatus) error {
 	logger.Info("transfer repository update status", logger.Fields{
 		"transferId": transferID,
