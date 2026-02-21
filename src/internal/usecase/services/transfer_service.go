@@ -427,8 +427,9 @@ func (s *TransferService) processExternalTransfer(ctx context.Context, req model
 		debitAccountNumber,
 		sumTotal,
 		s.internalTransientAccountNumber,
-		creditAmount,
+		debitAmount,
 		externalAccountNumber,
+		creditAmount,
 		creditCurrency,
 	)
 	if postingErr != nil {

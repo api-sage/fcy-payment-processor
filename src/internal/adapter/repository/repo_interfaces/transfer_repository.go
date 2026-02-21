@@ -17,8 +17,9 @@ type TransferRepository interface {
 		debitAccountNumber string,
 		totalDebitAmount decimal.Decimal,
 		suspenseAccountNumber string,
-		beneficiaryAmount decimal.Decimal,
+		debitSuspenseAccountAmount decimal.Decimal,
 		externalAccountNumber string,
+		creditExternalAccountAmount decimal.Decimal,
 		externalAccountCurrency string,
 	) error
 	UpdateStatus(ctx context.Context, transferID string, status domain.TransferStatus) error

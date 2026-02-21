@@ -411,17 +411,19 @@ func (r *TransferRepository) ProcessExternalTransfer(
 	debitAccountNumber string,
 	totalDebitAmount decimal.Decimal,
 	suspenseAccountNumber string,
-	beneficiaryAmount decimal.Decimal,
+	debitSuspenseAccountAmount decimal.Decimal,
 	externalAccountNumber string,
+	creditExternalAccountAmount decimal.Decimal,
 	externalAccountCurrency string,
 ) error {
 	logger.Info("transfer repository process external transfer", logger.Fields{
-		"debitAccountNumber":      debitAccountNumber,
-		"totalDebitAmount":        totalDebitAmount,
-		"suspenseAccountNumber":   suspenseAccountNumber,
-		"beneficiaryAmount":       beneficiaryAmount,
-		"externalAccountNumber":   externalAccountNumber,
-		"externalAccountCurrency": externalAccountCurrency,
+		"debitAccountNumber":         debitAccountNumber,
+		"totalDebitAmount":           totalDebitAmount,
+		"suspenseAccountNumber":      suspenseAccountNumber,
+		"debitSuspenseAccountAmount": debitSuspenseAccountAmount,
+		"externalAccountNumber":      externalAccountNumber,
+		"creditExternalAmount":       creditExternalAccountAmount,
+		"externalAccountCurrency":    externalAccountCurrency,
 	})
 
 	tx, err := r.db.BeginTx(ctx, nil)
@@ -462,7 +464,7 @@ SET available_balance = available_balance - $2::numeric,
     updated_at = NOW()
 WHERE account_number = $1
   AND available_balance >= $2::numeric`
-	if _, err = execRequiredRows(ctx, tx, debitSuspenseForBeneficiaryQuery, suspenseAccountNumber, beneficiaryAmount); err != nil {
+	if _, err = execRequiredRows(ctx, tx, debitSuspenseForBeneficiaryQuery, suspenseAccountNumber, debitSuspenseAccountAmount); err != nil {
 		return err
 	}
 
@@ -472,7 +474,7 @@ SET available_balance = available_balance + $2::numeric,
     updated_at = NOW()
 WHERE account_number = $1
   AND UPPER(currency) = UPPER($3)`
-	if _, err = execRequiredRows(ctx, tx, creditExternalAccountQuery, externalAccountNumber, beneficiaryAmount, externalAccountCurrency); err != nil {
+	if _, err = execRequiredRows(ctx, tx, creditExternalAccountQuery, externalAccountNumber, creditExternalAccountAmount, externalAccountCurrency); err != nil {
 		return err
 	}
 
