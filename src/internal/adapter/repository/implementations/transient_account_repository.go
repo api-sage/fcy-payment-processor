@@ -8,6 +8,7 @@ import (
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
+	"github.com/shopspring/decimal"
 )
 
 type TransientAccountRepository struct {
@@ -74,7 +75,7 @@ ON CONFLICT (account_number) DO NOTHING`
 	return nil
 }
 
-func (r *TransientAccountRepository) DebitSuspenseAccount(ctx context.Context, suspenseAccountNumber string, currency string, amount string) error {
+func (r *TransientAccountRepository) DebitSuspenseAccount(ctx context.Context, suspenseAccountNumber string, currency string, amount decimal.Decimal) error {
 	logger.Info("transient account repository debit", logger.Fields{
 		"accountNumber": suspenseAccountNumber,
 		"currency":      currency,
@@ -145,7 +146,7 @@ WHERE account_number = $1
 	return nil
 }
 
-func (r *TransientAccountRepository) CreditSuspenseAccount(ctx context.Context, suspenseAccountNumber string, currency string, amount string) error {
+func (r *TransientAccountRepository) CreditSuspenseAccount(ctx context.Context, suspenseAccountNumber string, currency string, amount decimal.Decimal) error {
 	logger.Info("transient account repository credit", logger.Fields{
 		"accountNumber": suspenseAccountNumber,
 		"currency":      currency,
@@ -196,12 +197,12 @@ WHERE account_number = $1
 func (r *TransientAccountRepository) SettleFromSuspenseToFees(
 	ctx context.Context,
 	suspenseAccountNumber string,
-	chargeAmount string,
-	vatAmount string,
+	chargeAmount decimal.Decimal,
+	vatAmount decimal.Decimal,
 	chargesAccountNumber string,
 	vatAccountNumber string,
-	chargeUSD string,
-	vatUSD string,
+	chargeUSD decimal.Decimal,
+	vatUSD decimal.Decimal,
 ) error {
 	logger.Info("transient account repository settle from suspense to fees", logger.Fields{
 		"suspenseAccountNumber": suspenseAccountNumber,

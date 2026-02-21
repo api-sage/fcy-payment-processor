@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type LedgerEntryType string
 
@@ -17,6 +21,6 @@ type TransientAccountTransaction struct {
 	CreditedAccount   string
 	EntryType         LedgerEntryType
 	Currency          string
-	Amount            string
+	Amount            decimal.Decimal
 	CreatedAt         time.Time
 }

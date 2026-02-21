@@ -11,6 +11,7 @@ import (
 	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
+	"github.com/shopspring/decimal"
 )
 
 type TransferRepository struct {
@@ -330,7 +331,7 @@ LIMIT 1`
 	return transfer, nil
 }
 
-func (r *TransferRepository) ProcessInternalTransfer(ctx context.Context, debitAccountNumber string, debitAmount string, suspenseAccountNumber string, debitSuspenseAccountAmount string, creditAccountNumber string, creditAmount string) error {
+func (r *TransferRepository) ProcessInternalTransfer(ctx context.Context, debitAccountNumber string, debitAmount decimal.Decimal, suspenseAccountNumber string, debitSuspenseAccountAmount decimal.Decimal, creditAccountNumber string, creditAmount decimal.Decimal) error {
 	logger.Info("transfer repository process internal transfer", logger.Fields{
 		"debitAccountNumber":         debitAccountNumber,
 		"debitAmount":                debitAmount,

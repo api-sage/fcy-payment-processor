@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type TransferStatus string
 
@@ -22,11 +26,11 @@ type Transfer struct {
 	CreditBankName       *string
 	DebitCurrency        string
 	CreditCurrency       string
-	DebitAmount          string
-	CreditAmount         string
-	FCYRate              string
-	ChargeAmount         string
-	VATAmount            string
+	DebitAmount          decimal.Decimal
+	CreditAmount         decimal.Decimal
+	FCYRate              decimal.Decimal
+	ChargeAmount         decimal.Decimal
+	VATAmount            decimal.Decimal
 	Narration            *string
 	Status               TransferStatus
 	AuditPayload         string

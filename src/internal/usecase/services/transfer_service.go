@@ -148,16 +148,6 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 
 	creditAmount := convertedAmount
 
-	debitAvailable, parseErr := decimal.NewFromString(strings.TrimSpace(debitAccount.AvailableBalance))
-	if parseErr != nil {
-		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), parseErr
-	}
-
-	if debitAvailable.LessThan(sumTotal) {
-		err := commons.ErrInsufficientBalance
-		return commons.ErrorResponse[models.InternalTransferResponse]("Insufficient balance", err.Error()), err
-	}
-
 	narration := strings.TrimSpace(req.Narration)
 	auditPayloadBytes, _ := json.Marshal(logger.SanitizePayload(req))
 	auditPayload := string(auditPayloadBytes)
@@ -175,11 +165,11 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 			CreditBankName:       stringPtr(req.CreditBankName),
 			DebitCurrency:        debitCurrency,
 			CreditCurrency:       creditCurrency,
-			DebitAmount:          debitAmount.StringFixed(2),
-			CreditAmount:         creditAmount.StringFixed(2),
-			FCYRate:              rateUsed.StringFixed(8),
-			ChargeAmount:         chargeAmount.StringFixed(2),
-			VATAmount:            vatAmount.StringFixed(2),
+			DebitAmount:          debitAmount,
+			CreditAmount:         creditAmount,
+			FCYRate:              rateUsed,
+			ChargeAmount:         chargeAmount,
+			VATAmount:            vatAmount,
 			Narration:            stringPtr(narration),
 			Status:               domain.TransferStatusPending,
 			AuditPayload:         auditPayload,
@@ -200,14 +190,18 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	postingErr := s.transferRepo.ProcessInternalTransfer(
 		ctx,
 		debitAccountNumber,
-		sumTotal.StringFixed(2),
+		sumTotal,
 		s.internalTransientAccountNumber,
-		debitAmount.StringFixed(2),
+		debitAmount,
 		creditAccountNumber,
-		creditAmount.StringFixed(2),
+		creditAmount,
 	)
 	if postingErr != nil {
 		_ = s.transferRepo.UpdateStatus(ctx, createdTransfer.ID, domain.TransferStatusFailed)
+		if strings.Contains(strings.ToLower(postingErr.Error()), "insufficient balance") {
+			err := commons.ErrInsufficientBalance
+			return commons.ErrorResponse[models.InternalTransferResponse]("Insufficient balance", err.Error()), err
+		}
 		return commons.ErrorResponse[models.InternalTransferResponse]("transfer failed", "Unable to complete transfer posting"), postingErr
 	}
 
@@ -218,7 +212,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		CreditedAccount:   s.internalTransientAccountNumber,
 		EntryType:         domain.LedgerEntryCredit,
 		Currency:          debitCurrency,
-		Amount:            sumTotal.StringFixed(2),
+		Amount:            sumTotal,
 	})
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
 		TransferID:        createdTransfer.ID,
@@ -227,7 +221,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		CreditedAccount:   creditAccountNumber,
 		EntryType:         domain.LedgerEntryDebit,
 		Currency:          creditCurrency,
-		Amount:            creditAmount.StringFixed(2),
+		Amount:            creditAmount,
 	})
 
 	_ = s.transferRepo.UpdateStatus(ctx, createdTransfer.ID, domain.TransferStatusSuccess)
@@ -245,12 +239,12 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	settlementErr := s.transientAccountRepo.SettleFromSuspenseToFees(
 		ctx,
 		s.internalTransientAccountNumber,
-		chargeAmount.StringFixed(2),
-		vatAmount.StringFixed(2),
+		chargeAmount,
+		vatAmount,
 		s.internalChargesAccountNumber,
 		s.internalVATAccountNumber,
-		chargeUSD.StringFixed(2),
-		vatUSD.StringFixed(2),
+		chargeUSD,
+		vatUSD,
 	)
 	if settlementErr != nil {
 		logger.Error("transfer service settlement failed", settlementErr, logger.Fields{
@@ -267,7 +261,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		CreditedAccount:   s.internalChargesAccountNumber,
 		EntryType:         domain.LedgerEntryDebit,
 		Currency:          debitCurrency,
-		Amount:            chargeAmount.StringFixed(2),
+		Amount:            chargeAmount,
 	})
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
 		TransferID:        createdTransfer.ID,
@@ -276,7 +270,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		CreditedAccount:   s.internalVATAccountNumber,
 		EntryType:         domain.LedgerEntryDebit,
 		Currency:          debitCurrency,
-		Amount:            vatAmount.StringFixed(2),
+		Amount:            vatAmount,
 	})
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
 		TransferID:        createdTransfer.ID,
@@ -285,7 +279,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		CreditedAccount:   s.internalChargesAccountNumber,
 		EntryType:         domain.LedgerEntryCredit,
 		Currency:          "USD",
-		Amount:            chargeUSD.StringFixed(2),
+		Amount:            chargeUSD,
 	})
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
 		TransferID:        createdTransfer.ID,
@@ -294,7 +288,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		CreditedAccount:   s.internalVATAccountNumber,
 		EntryType:         domain.LedgerEntryCredit,
 		Currency:          "USD",
-		Amount:            vatUSD.StringFixed(2),
+		Amount:            vatUSD,
 	})
 
 	_ = s.transferRepo.UpdateStatus(ctx, createdTransfer.ID, domain.TransferStatusClosed)
@@ -345,11 +339,11 @@ func mapTransferToResponse(transfer domain.Transfer, sumTotal decimal.Decimal) m
 		BeneficiaryBankCode:  valueOrEmpty(transfer.BeneficiaryBankCode),
 		DebitCurrency:        transfer.DebitCurrency,
 		CreditCurrency:       transfer.CreditCurrency,
-		DebitAmount:          decimalPtrFromString(transfer.DebitAmount),
-		CreditAmount:         decimalPtrFromString(transfer.CreditAmount),
-		FcyRate:              decimalPtrFromString(transfer.FCYRate),
-		ChargeAmount:         decimalPtrFromString(transfer.ChargeAmount),
-		VATAmount:            decimalPtrFromString(transfer.VATAmount),
+		DebitAmount:          decimalPtr(transfer.DebitAmount),
+		CreditAmount:         decimalPtr(transfer.CreditAmount),
+		FcyRate:              decimalPtr(transfer.FCYRate),
+		ChargeAmount:         decimalPtr(transfer.ChargeAmount),
+		VATAmount:            decimalPtr(transfer.VATAmount),
 		SumTotalDebit:        decimalPtr(sumTotal),
 		Narration:            valueOrEmpty(transfer.Narration),
 		Status:               string(transfer.Status),
@@ -387,12 +381,4 @@ func valueOrEmpty(value *string) string {
 func decimalPtr(value decimal.Decimal) *decimal.Decimal {
 	v := value
 	return &v
-}
-
-func decimalPtrFromString(value string) *decimal.Decimal {
-	parsed, err := decimal.NewFromString(strings.TrimSpace(value))
-	if err != nil {
-		return nil
-	}
-	return decimalPtr(parsed)
 }
