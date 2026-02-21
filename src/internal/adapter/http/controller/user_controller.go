@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type UserService interface {
-	CreateUser(ctx context.Context, req models.CreateUserRequest) (models.Response[models.CreateUserResponse], error)
-	GetUser(ctx context.Context, id string) (models.Response[models.GetUserResponse], error)
-	VerifyUserPin(ctx context.Context, customerID string, pin string) (models.Response[models.VerifyUserPinResponse], error)
+	CreateUser(ctx context.Context, req models.CreateUserRequest) (commons.Response[models.CreateUserResponse], error)
+	GetUser(ctx context.Context, id string) (commons.Response[models.GetUserResponse], error)
+	VerifyUserPin(ctx context.Context, customerID string, pin string) (commons.Response[models.VerifyUserPinResponse], error)
 }
 
 type UserController struct {
@@ -40,7 +41,7 @@ func (c *UserController) createUser(w http.ResponseWriter, r *http.Request) {
 	logRequest(r, nil)
 
 	if r.Method != http.MethodPost {
-		response := models.ErrorResponse[models.CreateUserResponse]("method not allowed")
+		response := commons.ErrorResponse[models.CreateUserResponse]("method not allowed")
 		writeJSON(w, http.StatusMethodNotAllowed, response)
 		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
@@ -49,7 +50,7 @@ func (c *UserController) createUser(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logError(r, err, nil)
-		response := models.ErrorResponse[models.CreateUserResponse]("invalid request body", err.Error())
+		response := commons.ErrorResponse[models.CreateUserResponse]("invalid request body", err.Error())
 		writeJSON(w, http.StatusBadRequest, response)
 		logResponse(r, http.StatusBadRequest, response, start)
 		return
@@ -58,7 +59,7 @@ func (c *UserController) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err := req.Validate(); err != nil {
 		logError(r, err, nil)
-		response := models.ErrorResponse[models.CreateUserResponse]("validation failed", err.Error())
+		response := commons.ErrorResponse[models.CreateUserResponse]("validation failed", err.Error())
 		writeJSON(w, http.StatusBadRequest, response)
 		logResponse(r, http.StatusBadRequest, response, start)
 		return
@@ -85,7 +86,7 @@ func (c *UserController) verifyUserPin(w http.ResponseWriter, r *http.Request) {
 	logRequest(r, nil)
 
 	if r.Method != http.MethodPost {
-		response := models.ErrorResponse[models.VerifyUserPinResponse]("method not allowed")
+		response := commons.ErrorResponse[models.VerifyUserPinResponse]("method not allowed")
 		writeJSON(w, http.StatusMethodNotAllowed, response)
 		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return
@@ -94,7 +95,7 @@ func (c *UserController) verifyUserPin(w http.ResponseWriter, r *http.Request) {
 	var req models.VerifyUserPinRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logError(r, err, nil)
-		response := models.ErrorResponse[models.VerifyUserPinResponse]("invalid request body", err.Error())
+		response := commons.ErrorResponse[models.VerifyUserPinResponse]("invalid request body", err.Error())
 		writeJSON(w, http.StatusBadRequest, response)
 		logResponse(r, http.StatusBadRequest, response, start)
 		return
@@ -103,7 +104,7 @@ func (c *UserController) verifyUserPin(w http.ResponseWriter, r *http.Request) {
 
 	if err := req.Validate(); err != nil {
 		logError(r, err, nil)
-		response := models.ErrorResponse[models.VerifyUserPinResponse]("validation failed", err.Error())
+		response := commons.ErrorResponse[models.VerifyUserPinResponse]("validation failed", err.Error())
 		writeJSON(w, http.StatusBadRequest, response)
 		logResponse(r, http.StatusBadRequest, response, start)
 		return

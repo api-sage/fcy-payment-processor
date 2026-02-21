@@ -1,4 +1,4 @@
-package usecase
+package services
 
 import (
 	"context"
@@ -7,20 +7,21 @@ import (
 	"strings"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
-	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
+	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/repo_interfaces"
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 	"github.com/shopspring/decimal"
 )
 
 type ChargesService struct {
-	rateRepo      domain.RateRepository
+	rateRepo      repo_interfaces.RateRepository
 	chargePercent decimal.Decimal
 	vatPercent    decimal.Decimal
 	chargeMin     decimal.Decimal
 	chargeMax     decimal.Decimal
 }
 
-func NewChargesService(rateRepo domain.RateRepository, chargePercent decimal.Decimal, vatPercent decimal.Decimal, chargeMin decimal.Decimal, chargeMax decimal.Decimal) *ChargesService {
+func NewChargesService(rateRepo repo_interfaces.RateRepository, chargePercent decimal.Decimal, vatPercent decimal.Decimal, chargeMin decimal.Decimal, chargeMax decimal.Decimal) *ChargesService {
 	return &ChargesService{
 		rateRepo:      rateRepo,
 		chargePercent: chargePercent,
@@ -30,23 +31,23 @@ func NewChargesService(rateRepo domain.RateRepository, chargePercent decimal.Dec
 	}
 }
 
-func (s *ChargesService) GetChargesSummary(ctx context.Context, req models.GetChargesRequest) (models.Response[models.GetChargesResponse], error) {
+func (s *ChargesService) GetChargesSummary(ctx context.Context, req models.GetChargesRequest) (commons.Response[models.GetChargesResponse], error) {
 	logger.Info("charges service get charges request", logger.Fields{
 		"payload": logger.SanitizePayload(req),
 	})
 
 	if err := req.Validate(); err != nil {
 		logger.Error("charges service get charges validation failed", err, nil)
-		return models.ErrorResponse[models.GetChargesResponse]("validation failed", err.Error()), err
+		return commons.ErrorResponse[models.GetChargesResponse]("validation failed", err.Error()), err
 	}
 
 	amount, currency, charge, vat, sumTotal, err := s.GetCharges(ctx, req.Amount, req.FromCurrency)
 	if err != nil {
-		if errors.Is(err, domain.ErrRecordNotFound) {
-			return models.ErrorResponse[models.GetChargesResponse]("Rate not found for currency pair"), err
+		if errors.Is(err, commons.ErrRecordNotFound) {
+			return commons.ErrorResponse[models.GetChargesResponse]("Rate not found for currency pair"), err
 		}
 		logger.Error("charges service get charges calculation failed", err, nil)
-		return models.ErrorResponse[models.GetChargesResponse]("failed to get charges", "Unable to fetch charges right now"), err
+		return commons.ErrorResponse[models.GetChargesResponse]("failed to get charges", "Unable to fetch charges right now"), err
 	}
 
 	response := models.GetChargesResponse{
@@ -65,7 +66,7 @@ func (s *ChargesService) GetChargesSummary(ctx context.Context, req models.GetCh
 		"sumTotal": response.SumTotal,
 	})
 
-	return models.SuccessResponse("charges fetched successfully", response), nil
+	return commons.SuccessResponse("charges fetched successfully", response), nil
 }
 
 func (s *ChargesService) GetCharges(ctx context.Context, amount string, fromCurrency string) (string, string, string, string, string, error) {

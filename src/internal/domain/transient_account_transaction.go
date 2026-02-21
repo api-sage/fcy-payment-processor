@@ -10,11 +10,11 @@ const (
 )
 
 type TransientAccountTransaction struct {
-	ID               string
-	TransferID       string
-	PaymentReference string
-	EntryType        LedgerEntryType
-	Currency         string
-	Amount           string
-	CreatedAt        time.Time
+	ID                string
+	TransferID        string
+	ExternalRefernece string
+	EntryType         LedgerEntryType
+	Currency          string
+	Amount            string
+	CreatedAt         time.Time
 }

@@ -1,0 +1,2 @@
+ALTER TABLE transfers
+    ADD COLUMN IF NOT EXISTS narration TEXT;

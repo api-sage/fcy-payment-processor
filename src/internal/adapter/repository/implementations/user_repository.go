@@ -1,4 +1,4 @@
-package postgres
+package implementations
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
@@ -90,7 +91,7 @@ WHERE id = $1`
 			logger.Info("user repository record not found", logger.Fields{
 				"userId": id,
 			})
-			return domain.User{}, domain.ErrRecordNotFound
+			return domain.User{}, commons.ErrRecordNotFound
 		}
 		logger.Error("user repository get by id failed", err, logger.Fields{
 			"userId": id,
@@ -148,7 +149,7 @@ RETURNING id, customer_id, first_name, middle_name, last_name, dob, phone_number
 			logger.Info("user repository record not found for update", logger.Fields{
 				"userId": user.ID,
 			})
-			return domain.User{}, domain.ErrRecordNotFound
+			return domain.User{}, commons.ErrRecordNotFound
 		}
 		logger.Error("user repository update failed", err, logger.Fields{
 			"userId": user.ID,
@@ -180,7 +181,7 @@ WHERE customer_id = $1`
 			logger.Info("user repository pin hash record not found", logger.Fields{
 				"customerId": customerID,
 			})
-			return "", domain.ErrRecordNotFound
+			return "", commons.ErrRecordNotFound
 		}
 		logger.Error("user repository get pin hash failed", err, logger.Fields{
 			"customerId": customerID,

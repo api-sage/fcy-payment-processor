@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
 
 type ParticipantBankService interface {
-	GetParticipantBanks(ctx context.Context) (models.Response[[]models.ParticipantBankResponse], error)
+	GetParticipantBanks(ctx context.Context) (commons.Response[[]models.ParticipantBankResponse], error)
 }
 
 type ParticipantBankController struct {
@@ -35,7 +36,7 @@ func (c *ParticipantBankController) getParticipantBanks(w http.ResponseWriter, r
 	logRequest(r, nil)
 
 	if r.Method != http.MethodGet {
-		response := models.ErrorResponse[[]models.ParticipantBankResponse]("method not allowed")
+		response := commons.ErrorResponse[[]models.ParticipantBankResponse]("method not allowed")
 		writeJSON(w, http.StatusMethodNotAllowed, response)
 		logResponse(r, http.StatusMethodNotAllowed, response, start)
 		return

@@ -119,6 +119,38 @@ const openAPI = `{
         }
       }
     },
+    "/deposit-funds": {
+      "post": {
+        "summary": "Deposit funds into an internal account",
+        "security": [
+          {
+            "BasicAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["accountNumber", "amount"],
+                "properties": {
+                  "accountNumber": {"type": "string", "example": "0123456789"},
+                  "amount": {"type": "string", "example": "100.00"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Deposit successful"},
+          "400": {"description": "Validation error"},
+          "401": {"description": "Unauthorized"},
+          "404": {"description": "Account not found"},
+          "500": {"description": "Server error"}
+        }
+      }
+    },
     "/get-participant-banks": {
       "get": {
         "summary": "Get participant banks",
@@ -216,7 +248,7 @@ const openAPI = `{
         }
       }
     },
-    "/convertfcyamount": {
+    "/convert-fcy-amount": {
       "post": {
         "summary": "Get converted amount by currency pair",
         "security": [
@@ -244,6 +276,68 @@ const openAPI = `{
           "200": {"description": "Converted rate fetched"},
           "400": {"description": "Validation error"},
           "401": {"description": "Unauthorized"},
+          "500": {"description": "Server error"}
+        }
+      }
+    },
+    "/transfer-funds": {
+      "post": {
+        "summary": "Transfer funds in multiple currencies",
+        "security": [
+          {
+            "BasicAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "debitAccountNumber",
+                  "creditAccountNumber",
+                  "beneficiaryBankCode",
+                  "debitCurrency",
+                  "creditCurrency",
+                  "debitAmount",
+                  "narration"
+                ],
+                "properties": {
+                  "debitAccountNumber": {"type": "string", "example": "0123456789"},
+                  "creditAccountNumber": {"type": "string", "example": "0123456790"},
+                  "beneficiaryBankCode": {"type": "string", "example": "100100"},
+                  "debitCurrency": {"type": "string", "example": "USD"},
+                  "creditCurrency": {"type": "string", "example": "USD"},
+                  "debitAmount": {"type": "string", "example": "100.00"},
+                  "narration": {
+                    "type": "string",
+                    "enum": [
+                      "Travels and Holiday",
+                      "Salary",
+                      "Project charge",
+                      "Food and consumables",
+                      "Transportation",
+                      "Accomodation",
+                      "utility bill",
+                      "savings",
+                      "investment",
+                      "loan",
+                      "loan repayment",
+                      "others"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Transfer processed"},
+          "400": {"description": "Validation error"},
+          "401": {"description": "Unauthorized"},
+          "404": {"description": "Account or rate not found"},
+          "422": {"description": "Insufficient balance"},
           "500": {"description": "Server error"}
         }
       }

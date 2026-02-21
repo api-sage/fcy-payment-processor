@@ -1,4 +1,4 @@
-package postgres
+package implementations
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
 	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
 	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
 )
@@ -91,7 +92,7 @@ LIMIT 1`
 				"fromCurrency": fromCurrency,
 				"toCurrency":   toCurrency,
 			})
-			return domain.Rate{}, domain.ErrRecordNotFound
+			return domain.Rate{}, commons.ErrRecordNotFound
 		}
 		logger.Error("rate repository get rate failed", err, logger.Fields{
 			"fromCurrency": fromCurrency,

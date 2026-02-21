@@ -13,21 +13,27 @@ const defaultConnectionString = "Host=localhost;Port=5432;Database=payment_syste
 const defaultChannelID = "GreyApp"
 const defaultChannelKey = "GreyHoundKey001"
 const defaultGreyBankCode = "100100"
-const defaultChargePercent = "1.0"
+const defaultChargePercent = "1"
 const defaultVATPercent = "7.5"
-const defaultChargeMinAmount = "2.0"
-const defaultChargeMaxAmount = "20.0"
+const defaultChargeMinAmount = "2"
+const defaultChargeMaxAmount = "20"
+const defaultInternalTransientAccountNumber = "0123456890"
+const defaultInternalChargesAccountNumber = "0123445521"
+const defaultInternalVATAccountNumber = "0125548976"
 
 type Config struct {
-	DatabaseDSN   string
-	MigrationsDir string
-	ChannelID     string
-	ChannelKey    string
-	GreyBankCode  string
-	ChargePercent decimal.Decimal
-	VATPercent    decimal.Decimal
-	ChargeMin     decimal.Decimal
-	ChargeMax     decimal.Decimal
+	DatabaseDSN                    string
+	MigrationsDir                  string
+	ChannelID                      string
+	ChannelKey                     string
+	GreyBankCode                   string
+	ChargePercent                  decimal.Decimal
+	VATPercent                     decimal.Decimal
+	ChargeMinAmount                decimal.Decimal
+	ChargeMaxAmount                decimal.Decimal
+	InternalTransientAccountNumber string
+	InternalChargesAccountNumber   string
+	InternalVATAccountNumber       string
 }
 
 func Load() (Config, error) {
@@ -70,20 +76,35 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	if chargeMax.LessThan(chargeMin) {
-		return Config{}, fmt.Errorf("CHARGE_MAX_AMOUNT cannot be less than CHARGE_MIN_AMOUNT")
+
+	internalTransientAccountNumber := strings.TrimSpace(os.Getenv("INTERNAL_TRANSIENT_ACCOUNT_NUMBER"))
+	if internalTransientAccountNumber == "" {
+		internalTransientAccountNumber = defaultInternalTransientAccountNumber
+	}
+
+	internalChargesAccountNumber := strings.TrimSpace(os.Getenv("INTERNAL_CHARGES_ACCOUNT_NUMBER"))
+	if internalChargesAccountNumber == "" {
+		internalChargesAccountNumber = defaultInternalChargesAccountNumber
+	}
+
+	internalVATAccountNumber := strings.TrimSpace(os.Getenv("INTERNAL_VAT_ACCOUNT_NUMBER"))
+	if internalVATAccountNumber == "" {
+		internalVATAccountNumber = defaultInternalVATAccountNumber
 	}
 
 	return Config{
-		DatabaseDSN:   normalizeConnectionString(conn),
-		MigrationsDir: filepath.Join("src", "migrations"),
-		ChannelID:     channelID,
-		ChannelKey:    channelKey,
-		GreyBankCode:  greyBankCode,
-		ChargePercent: chargePercent,
-		VATPercent:    vatPercent,
-		ChargeMin:     chargeMin,
-		ChargeMax:     chargeMax,
+		DatabaseDSN:                    normalizeConnectionString(conn),
+		MigrationsDir:                  filepath.Join("src", "migrations"),
+		ChannelID:                      channelID,
+		ChannelKey:                     channelKey,
+		GreyBankCode:                   greyBankCode,
+		ChargePercent:                  chargePercent,
+		VATPercent:                     vatPercent,
+		ChargeMinAmount:                chargeMin,
+		ChargeMaxAmount:                chargeMax, // For now, we set max charge amount same as min to disable it
+		InternalTransientAccountNumber: internalTransientAccountNumber,
+		InternalChargesAccountNumber:   internalChargesAccountNumber,
+		InternalVATAccountNumber:       internalVATAccountNumber,
 	}, nil
 }
 
