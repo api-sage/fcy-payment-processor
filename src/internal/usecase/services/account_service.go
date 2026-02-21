@@ -43,6 +43,21 @@ func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAcc
 		return commons.ErrorResponse[models.CreateAccountResponse]("validation failed", err.Error()), err
 	}
 
+	customerID := strings.TrimSpace(req.CustomerID)
+	currency := strings.ToUpper(strings.TrimSpace(req.Currency))
+	hasAccount, err := s.accountRepo.HasAccountForCustomerIDAndCurrency(ctx, customerID, currency)
+	if err != nil {
+		logger.Error("account service create account existing account check failed", err, logger.Fields{
+			"customerId": customerID,
+			"currency":   currency,
+		})
+		return commons.ErrorResponse[models.CreateAccountResponse]("failed to create account", "Customer already has an account for this currency"), err
+	}
+	if hasAccount {
+		err := fmt.Errorf("customerId already has a %s account", currency)
+		return commons.ErrorResponse[models.CreateAccountResponse]("validation failed", err.Error()), err
+	}
+
 	balance, err := parseBalance(req.InitialDeposit)
 	if err != nil {
 		logger.Error("account service create account parse balance failed", err, nil)
@@ -50,9 +65,9 @@ func (s *AccountService) CreateAccount(ctx context.Context, req models.CreateAcc
 	}
 
 	account := domain.Account{
-		CustomerID:       strings.TrimSpace(req.CustomerID),
+		CustomerID:       customerID,
 		AccountNumber:    generateAccountNumber(),
-		Currency:         strings.ToUpper(strings.TrimSpace(req.Currency)),
+		Currency:         currency,
 		AvailableBalance: balance,
 		LedgerBalance:    balance,
 		Status:           domain.AccountStatusActive,
