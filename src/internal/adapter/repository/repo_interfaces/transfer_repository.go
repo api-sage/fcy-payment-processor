@@ -20,12 +20,6 @@ type TransferRepository interface {
 		beneficiaryAmount decimal.Decimal,
 		externalAccountNumber string,
 		externalAccountCurrency string,
-		chargeAmount decimal.Decimal,
-		vatAmount decimal.Decimal,
-		chargesAccountNumber string,
-		vatAccountNumber string,
-		chargeUSD decimal.Decimal,
-		vatUSD decimal.Decimal,
 	) error
 	UpdateStatus(ctx context.Context, transferID string, status domain.TransferStatus) error
 }

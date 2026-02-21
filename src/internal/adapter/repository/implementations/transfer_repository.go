@@ -414,12 +414,6 @@ func (r *TransferRepository) ProcessExternalTransfer(
 	beneficiaryAmount decimal.Decimal,
 	externalAccountNumber string,
 	externalAccountCurrency string,
-	chargeAmount decimal.Decimal,
-	vatAmount decimal.Decimal,
-	chargesAccountNumber string,
-	vatAccountNumber string,
-	chargeUSD decimal.Decimal,
-	vatUSD decimal.Decimal,
 ) error {
 	logger.Info("transfer repository process external transfer", logger.Fields{
 		"debitAccountNumber":      debitAccountNumber,
@@ -428,10 +422,6 @@ func (r *TransferRepository) ProcessExternalTransfer(
 		"beneficiaryAmount":       beneficiaryAmount,
 		"externalAccountNumber":   externalAccountNumber,
 		"externalAccountCurrency": externalAccountCurrency,
-		"chargeAmount":            chargeAmount,
-		"vatAmount":               vatAmount,
-		"chargeUSD":               chargeUSD,
-		"vatUSD":                  vatUSD,
 	})
 
 	tx, err := r.db.BeginTx(ctx, nil)
@@ -483,29 +473,6 @@ SET available_balance = available_balance + $2::numeric,
 WHERE account_number = $1
   AND UPPER(currency) = UPPER($3)`
 	if _, err = execRequiredRows(ctx, tx, creditExternalAccountQuery, externalAccountNumber, beneficiaryAmount, externalAccountCurrency); err != nil {
-		return err
-	}
-
-	debitSuspenseForFeesQuery := `
-UPDATE transient_accounts
-SET available_balance = available_balance - ($2::numeric + $3::numeric),
-    updated_at = NOW()
-WHERE account_number = $1
-  AND available_balance >= ($2::numeric + $3::numeric)`
-	if _, err = execRequiredRows(ctx, tx, debitSuspenseForFeesQuery, suspenseAccountNumber, chargeAmount, vatAmount); err != nil {
-		return err
-	}
-
-	creditFeeAccountQuery := `
-UPDATE transient_accounts
-SET available_balance = available_balance + $2::numeric,
-    updated_at = NOW()
-WHERE account_number = $1
-  AND UPPER(currency) = 'USD'`
-	if _, err = execRequiredRows(ctx, tx, creditFeeAccountQuery, chargesAccountNumber, chargeUSD); err != nil {
-		return err
-	}
-	if _, err = execRequiredRows(ctx, tx, creditFeeAccountQuery, vatAccountNumber, vatUSD); err != nil {
 		return err
 	}
 

@@ -430,12 +430,6 @@ func (s *TransferService) processExternalTransfer(ctx context.Context, req model
 		creditAmount,
 		externalAccountNumber,
 		creditCurrency,
-		chargeAmount,
-		vatAmount,
-		s.internalChargesAccountNumber,
-		s.internalVATAccountNumber,
-		chargeUSD,
-		vatUSD,
 	)
 	if postingErr != nil {
 		_ = s.transferRepo.UpdateStatus(ctx, createdTransfer.ID, domain.TransferStatusFailed)
@@ -464,6 +458,28 @@ func (s *TransferService) processExternalTransfer(ctx context.Context, req model
 		Currency:          creditCurrency,
 		Amount:            creditAmount,
 	})
+
+	_ = s.transferRepo.UpdateStatus(ctx, createdTransfer.ID, domain.TransferStatusSuccess)
+	createdTransfer.Status = domain.TransferStatusSuccess
+
+	settlementErr := s.transientAccountRepo.SettleFromSuspenseToFees(
+		ctx,
+		s.internalTransientAccountNumber,
+		chargeAmount,
+		vatAmount,
+		s.internalChargesAccountNumber,
+		s.internalVATAccountNumber,
+		chargeUSD,
+		vatUSD,
+	)
+	if settlementErr != nil {
+		logger.Error("transfer service external settlement failed", settlementErr, logger.Fields{
+			"transferId": createdTransfer.ID,
+		})
+		response := mapTransferToResponse(createdTransfer, sumTotal)
+		return commons.SuccessResponse("Transaction successful. Settlement pending", response), nil
+	}
+
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
 		TransferID:        createdTransfer.ID,
 		ExternalRefernece: valueOrEmpty(createdTransfer.ExternalRefernece),
@@ -487,7 +503,7 @@ func (s *TransferService) processExternalTransfer(ctx context.Context, req model
 		ExternalRefernece: valueOrEmpty(createdTransfer.ExternalRefernece),
 		DebitedAccount:    s.internalTransientAccountNumber,
 		CreditedAccount:   s.internalChargesAccountNumber,
-		EntryType:         domain.LedgerEntryDebit,
+		EntryType:         domain.LedgerEntryCredit,
 		Currency:          "USD",
 		Amount:            chargeUSD,
 	})
@@ -496,7 +512,7 @@ func (s *TransferService) processExternalTransfer(ctx context.Context, req model
 		ExternalRefernece: valueOrEmpty(createdTransfer.ExternalRefernece),
 		DebitedAccount:    s.internalTransientAccountNumber,
 		CreditedAccount:   s.internalVATAccountNumber,
-		EntryType:         domain.LedgerEntryDebit,
+		EntryType:         domain.LedgerEntryCredit,
 		Currency:          "USD",
 		Amount:            vatUSD,
 	})
