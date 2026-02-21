@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
-	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/repo_interfaces"
-	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
-	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
+	"github.com/api-sage/fcy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/fcy-payment-processor/src/internal/adapter/repository/repo_interfaces"
+	"github.com/api-sage/fcy-payment-processor/src/internal/commons"
+	"github.com/api-sage/fcy-payment-processor/src/internal/logger"
 	"github.com/shopspring/decimal"
 )
 

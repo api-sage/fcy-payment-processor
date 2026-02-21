@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
+	"github.com/api-sage/fcy-payment-processor/src/internal/domain"
 )
 
 type CreateUserRequest struct {

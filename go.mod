@@ -1,4 +1,4 @@
-module github.com/api-sage/ccy-payment-processor
+module github.com/api-sage/fcy-payment-processor
 
 go 1.25.0
 

@@ -1,0 +1,9 @@
+.git
+.gitignore
+.vscode
+docs
+**/*.drawio
+**/*.jpg
+README.md
+
+docker.compose.yml

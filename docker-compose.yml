@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fcy-payment-db
+    environment:
+      POSTGRES_DB: payment_system_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d payment_system_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fcy-payment-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: "8080"
+      DATABASE_DSN: "Host=db;Port=5432;Database=payment_system_db;Username=postgres;Password=postgres;Timeout=30;CommandTimeout=30"
+      CHANNEL_ID: "GreyApp"
+      CHANNEL_KEY: "GreyHoundKey001"
+      GREY_BANK_CODE: "100100"
+      CHARGE_PERCENT: "1"
+      VAT_PERCENT: "7.5"
+      CHARGE_MIN_AMOUNT: "2"
+      CHARGE_MAX_AMOUNT: "20"
+      INTERNAL_TRANSIENT_ACCOUNT_NUMBER: "0123456890"
+      INTERNAL_CHARGES_ACCOUNT_NUMBER: "0123445521"
+      INTERNAL_VAT_ACCOUNT_NUMBER: "0125548976"
+      EXTERNAL_USD_GL_ACCOUNT_NUMBER: "0125548977"
+      EXTERNAL_GBP_GL_ACCOUNT_NUMBER: "0125548978"
+      EXTERNAL_EUR_GL_ACCOUNT_NUMBER: "0125548979"
+      EXTERNAL_NGN_GL_ACCOUNT_NUMBER: "0125548980"
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

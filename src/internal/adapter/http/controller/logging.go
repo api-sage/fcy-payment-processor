@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
+	"github.com/api-sage/fcy-payment-processor/src/internal/logger"
 )
 
 func logRequest(r *http.Request, payload any) {

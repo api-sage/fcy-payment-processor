@@ -9,7 +9,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-const defaultConnectionString = "Host=localhost;Port=5432;Database=payment_system_db;Username=postgres;Password=1&i355O8;Timeout=30;CommandTimeout=30"
+const defaultConnectionString = "Host=localhost;Port=5432;Database=payment_system_db;Username=postgres;Password=postgres;Timeout=30;CommandTimeout=30"
 const defaultChannelID = "GreyApp"
 const defaultChannelKey = "GreyHoundKey001"
 const defaultGreyBankCode = "100100"

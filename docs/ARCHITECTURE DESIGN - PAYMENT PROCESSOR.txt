@@ -1,99 +1,229 @@
 ================================================================================
-ARCHITECTURE DESIGN: MULTI-CURRENCY PAYMENT SYSTEM (CLEAN ARCHITECTURE)
+ARCHITECTURE DESIGN: FCY PAYMENT PROCESSOR (CLEAN ARCHITECTURE)
 ================================================================================
 
-ccy-payment-processor/
-├── .gitignore
-├── LICENSE
-├── README.md                  # Project documentation
-├── docker-compose.yml         # Infrastructure Orchestration
-├── Dockerfile                 # Container Recipe
-├── go.mod                     # Dependency Management
-├── docs/                      # Arch docs and sequence flows
-│   ├── ARCHITECTURE DESIGN - PAYMENT PROCESSOR.txt
-│   └── PAYMENT PROCESSOR SYSTEM SEQUENCE FLOW.jpg
-└── src/                       # THE SOURCE ROOT
-    ├── cmd/
-    │   └── server/
-    │       └── main.go        # Entry point: Wires up the App
-    ├── internal/
-    │   ├── adapter/           # EXTERNAL INTERFACES
-    │   │   ├── http/          # Handlers & Middleware
-    │   │   └── repository/    # Postgres & SQL Logic
-    │   ├── config/            # AppSettings loader
-    │   ├── domain/            # CORE ENTITIES (Entities & Interfaces)
-    │   └── usecase/           # BUSINESS LOGIC (The Brain)
-    ├── migrations/            # SQL scripts for DB evolution
-    └── appsettings.json       # Config (Charges, VAT, Channel Creds)
+Project layout
+--------------
+fcy-payment-processor/
+|- docs/
+|  |- ARCHITECTURE DESIGN - PAYMENT PROCESSOR.txt
+|  `- PAYMENT PROCESSOR SYSTEM SEQUENCE FLOW.jpg
+`- src/
+   |- cmd/server/main.go
+   |- internal/
+   |  |- adapter/
+   |  |  |- http/              (controllers, request/response models, router, swagger)
+   |  |  `- repository/        (postgres implementations + in-memory participant banks)
+   |  |- config/               (env/config loading)
+   |  |- domain/               (entities + domain interfaces)
+   |  |- logger/
+   |  `- usecase/              (service interfaces + service implementations)
+   `- migrations/
 
 
-1. AUTHENTICATION & SECURITY
-----------------------------
-* Channel Validation: 
-    - Incoming requests checked against 'appsettings' (ChannelCredentials).
-    - Logic: IF (Request.SourceCredentials == AppSettings.Credentials) ALLOW ELSE DENY.
-* Transaction Authorization:
-    - TransactionPin required for every transfer request.
+1) Architecture style
+---------------------
+- Clean architecture with dependency direction:
+  - Controllers depend on usecase/service interfaces.
+  - Usecases depend on repository interfaces + other service interfaces.
+  - Repository implementations depend on DB and fulfill interfaces.
+- Runtime wiring is in `src/cmd/server/main.go`.
+- HTTP stack uses standard library (`net/http`) and shared basic-auth middleware.
 
-2. SYSTEM ENTITIES (CORE MODELS)
---------------------------------
-* Users: Auth and Profile data including customer Id.
-* Accounts: CustomerId, Account related data and available amount, account status, etc
-* Transfers: Main transaction log (ID, Status, PaymentRef, AuditPayload).
-* Rates: CCY record - FromCcy, ToCcy, Rate, RateDate.
-* TransientAccountTransactions: Ledger for the Suspense Account movements.
 
-3. API ENDPOINTS
-----------------
-* POST /getAccount          -> { accountnumber }
-* GET  /getparticipantbanks -> returns List<Bank>
-* POST /validateaccount     -> { accountnumber, bankcode }
-* POST /convertfcyamount    -> { amount, fromCcy, toCcy }
-* GET  /getcharges          -> ?ccy=USD&amount=100
-* POST /intratransfer       -> (Internal Transfer Payload)
-* POST /intertransfers      -> (External Transfer Payload + bankcode)
+2) Core domains
+---------------
+- User
+  - Stores customer profile and transaction pin hash.
+- Account
+  - Customer account with `available_balance`, `ledger_balance`, status and currency.
+- Transfer
+  - Canonical transfer record with:
+    - `transaction_reference` (client-facing reference)
+    - `external_refernece` (internal/external rail reference)
+    - debit/credit currencies and amounts
+    - charge/vat/fx rate
+    - beneficiary bank code/name and transfer status.
+- Rate
+  - Currency pair rates per `rate_date`.
+- TransientAccount
+  - Internal GL/suspense accounts:
+    - Internal transient account
+    - Charges account (USD)
+    - VAT account (USD)
+    - External GL accounts per currency (USD/GBP/EUR/NGN)
+- TransientAccountTransaction
+  - Audit ledger for posting entries tied to a transfer.
 
-4. TRANSFER BUSINESS LOGIC (USE CASE)
--------------------------------------
-A. Pre-Processing:
-   - Validate ChannelCode & TransactionPin.
-   - Validate Debit Account & Beneficiary (Account number/Bank code).
-   - Check Available Balance >= (Amount + Charges + VAT).
-     * Charges: Static (from AppSettings).
-     * VAT: 7.5% of Amount (in Sender's CCY).
 
-B. Persistence (State Management):
-   - Create Transfer record (Status: PENDING).
-   - Store full Request Body as a Serialized String in 'audit_payload' column.
-
-C. Fund Movement (Suspense Account Pattern):
-   - IF (DebitCCY == CreditCCY):
-     1. Debit Sender (Amount + Charges + VAT).
-     2. Credit Suspense Account (Amount).
-     3. Credit Beneficiary from Suspense Account.
-
-   - IF (DebitCCY != CreditCCY):
-     IF (isAmountInBeneficiaryCurrency == true):
-       1. Convert Target Amount -> Sender CCY.
-       2. Debit Sender (ConvertedAmount equivalence in their own account ccy + Charges + VAT).
-       3. Credit Beneficiary exact Target Amount via Suspense.
-     ELSE (isAmountInBeneficiaryCurrency == false):
-       1. Debit Sender (Amount + Charges + VAT).
-       2. Convert Amount -> Beneficiary CCY (convertedAmount).
-       3. Credit Beneficiary 'convertedAmount' via Suspense.
-
-D. Post-Processing:
-   - Generate unique ExternalRefernece.
-   - Update 'Transfers' table status to SUCCESS.
-   - Update 'TransientAccountTransactions' with the ExternalRefernece.
-
-5. CLEAN ARCHITECTURE STRUCTURE
+3) API surface (current routes)
 -------------------------------
-/internal
-  /domain       <- Entities (User, Transfer, Account) + Logic Interfaces
-  /usecase      <- TransferService (The logic above lives here)
-  /adapter
-    /http       <- API Handlers (Gin/Fiber) + Channel Auth Middleware
-    /repository <- Postgres Implementation (SQL Transactions)
-    /config     <- AppSettings/Environment Loader
+- `POST /create-user`
+- `POST /verify-pin`
+- `POST /create-account`
+- `GET /get-account`
+- `POST /deposit-funds`
+- `GET /get-participant-banks`
+- `GET /get-rates`
+- `POST /get-rate`
+- `POST /convert-fcy-amount`
+- `GET /get-charges`
+- `POST /transfer-funds`
+- `GET /swagger`, `GET /swagger/`, `GET /swagger/openapi.json`
+
+
+4) Security and validation
+--------------------------
+- Channel auth:
+  - Basic auth via middleware (channel id/key from config).
+- Transfer authorization:
+  - Transaction PIN is validated through `UserService.VerifyUserPin`.
+- Request validation:
+  - All major request models validate format and required fields.
+  - Decimal values are strongly typed (`decimal.Decimal`) end-to-end.
+
+
+5) Charges and VAT model
+------------------------
+- Inputs: `amount`, `fromCurrency`.
+- VAT:
+  - Always `vatPercent * amount` in debit currency.
+- Charge:
+  - Evaluated in USD with min/max bounds:
+    - `chargeUSD = amountUSD * chargePercent`
+    - clamp to `[chargeMinUSD, chargeMaxUSD]`
+  - Returned to client in debit currency:
+    - for non-USD, convert final bounded USD charge back to debit currency.
+- Response:
+  - `amount`, `currency`, `charge`, `vat`, `sumTotal` all returned as decimal numbers.
+
+
+6) Transfer orchestration
+-------------------------
+Single endpoint: `POST /transfer-funds`
+
+Routing rule
+- If `beneficiaryBankCode == GREY_BANK_CODE` (default `100100`): internal transfer flow.
+- Else: external transfer flow.
+  - Bank code must exist in in-memory participant bank list.
+  - Beneficiary bank name persisted is sourced from in-memory bank data (not client payload).
+
+Internal transfer flow
+- Pre-checks:
+  - validate accounts, currencies, status, PIN.
+- Compute:
+  - credit amount from rates, charge/vat/sum total from charges service.
+- Persist transfer as `PENDING`.
+- Main leg posting (single DB transaction):
+  - debit sender account by `sumTotal`
+  - credit internal transient by `sumTotal`
+  - debit internal transient by sender principal (`debitAmount`)
+  - credit beneficiary account by converted `creditAmount`
+- Mark `SUCCESS`.
+- Settlement leg (separate DB transaction):
+  - settle fees from transient to charges/vat accounts.
+- Mark `CLOSED` on settlement success.
+- If settlement fails after main success:
+  - return success with "Settlement pending".
+
+External transfer flow
+- Pre-checks:
+  - validate debit account/currency/status/PIN.
+  - validate non-internal beneficiary bank code in participant list.
+  - resolve beneficiary bank name from participant list.
+  - resolve destination external GL account by beneficiary currency.
+- Compute:
+  - `creditAmount` from rates, charge/vat/sum total from charges service.
+  - generate:
+    - `transaction_reference` (30 digits)
+    - `external_refernece` (`EXT` + 27 digits = 30 chars total)
+- Persist transfer as `PENDING`.
+- Main leg posting (single DB transaction):
+  - debit sender account by `sumTotal`
+  - credit internal transient by `sumTotal`
+  - debit internal transient by sender principal (`debitAmount`)
+  - credit external GL account by converted `creditAmount`
+- Mark `SUCCESS`.
+- Settlement leg (separate DB transaction):
+  - settle charge/vat from transient to charges/vat accounts.
+- Mark `CLOSED` on settlement success.
+- If settlement fails after main success:
+  - return success with "Settlement pending".
+- API response does not expose external reference.
+
+
+7) Data consistency strategy
+----------------------------
+- Each posting leg is atomic (DB transaction).
+- Transfer row status progression:
+  - `PENDING -> SUCCESS -> CLOSED` (or `FAILED` on main-leg failure).
+- Ledger and account updates are performed with guarded SQL updates
+  (`rows affected` checks) to enforce:
+  - account existence
+  - account status
+  - sufficient balances.
+
+
+8) Startup behavior
+-------------------
+- On startup, the app:
+  - runs SQL migrations from `src/migrations`.
+  - ensures default rates exist (`EnsureDefaultRates`).
+  - ensures transient/internal GL accounts exist (`EnsureInternalAccounts`).
+- Configuration includes:
+  - `GREY_BANK_CODE`
+  - charge/vat percentages and bounds
+  - internal transient/charges/vat account numbers
+ - external USD/GBP/EUR/NGN GL account numbers.
+
+
+9) Design decisions, trade-offs, and improvements with more time
+-----------------------------------------------------------------
+Security and data privacy
+- Current decision:
+  - Transaction PIN is used for user-level authorization.
+  - Channel authorization is currently driven by config-based basic auth.
+- Trade-off:
+  - Fast to implement and works for controlled channels, but trust is still heavily request-payload driven.
+- Improvement plan:
+  - Enforce JWT from clients and derive trusted metadata (for example `customerId` and `debitAccountNumber`) from token claims instead of relying only on payload.
+  - Add end-to-end encryption for sensitive payload fields and records (for example AES-256 with managed keys, and PGP for selected payload exchange use cases).
+  - Build a dedicated channel authentication service for stronger source validation and policy-based channel authorization.
+
+Scalability
+- Current decision:
+  - Transfers are processed synchronously over HTTP with direct DB posting.
+- Trade-off:
+  - Simpler request/response flow, but increased pressure on DB and service threads during high traffic.
+- Improvement plan:
+  - Introduce queue/stream-driven transfer intake using Kafka, RabbitMQ, or Amazon SQS.
+  - Use async workers to consume queued transfer requests and process postings.
+  - Build a dedicated settlement service using pub/sub (Kafka or RabbitMQ) for near real-time asynchronous settlement.
+  - Add Redis caching for low-churn endpoints such as `/get-account` and `/get-participant-banks`.
+
+Operability and support
+- Current decision:
+  - Application logs are local/service-level logs.
+- Trade-off:
+  - Limited centralized search, correlation, and alerting for production support.
+- Improvement plan:
+  - Implement centralized logging with indexing and dashboards, for example:
+    - ELK stack (Elasticsearch + Logstash/Beats + Kibana)
+    - Grafana Loki + Promtail + Grafana
+  - Add correlation IDs across HTTP requests, transfer records, and settlement events for easier incident tracing.
+
+AML, audit and compliance
+- Current decision:
+  - Core transfer posting is consistent, atomic per leg, and auditable through transfer + transient transaction tables.
+- Trade-off:
+  - Some decimal response values can occasionally show very small precision artifacts (for example `0.000000001`) which can affect reporting readability.
+  - Customer/account onboarding checks are functional but not yet modeled for deeper compliance controls.
+- Improvement plan:
+  - Tighten decimal scale and rounding policy consistently for reporting, reconciliation, and audit exports.
+  - Strengthen onboarding and account-integrity controls:
+    - Enforce stronger identity uniqueness rules (for example no duplicate ID type/value pairs).
+    - Apply KYC-tier transaction and balance limits.
+    - Maintain customer mandates in a dedicated table.
+  - Expand onboarding controls as a foundation for stronger transaction monitoring and AML/CFT/CPF compliance.
+
 ================================================================================

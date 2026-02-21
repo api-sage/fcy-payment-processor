@@ -4,7 +4,7 @@ import (
 	"crypto/subtle"
 	"net/http"
 
-	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
+	"github.com/api-sage/fcy-payment-processor/src/internal/logger"
 )
 
 func BasicAuth(channelID, channelKey string) func(http.Handler) http.Handler {
