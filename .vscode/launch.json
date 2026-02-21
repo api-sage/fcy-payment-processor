@@ -12,7 +12,7 @@
         "PORT": "8080",
         "CHANNEL_ID": "GreyApp",
         "CHANNEL_KEY": "GreyHoundKey001",
-        "DATABASE_DSN": "Host=localhost;Port=5432;Database=payment_system_db;Username=postgres;Password=1&i355O8;Timeout=30;CommandTimeout=30",
+        "DATABASE_DSN": "Host=localhost;Port=5432;Database=payment_system_db;Username=postgres;Password=postgres;Timeout=30;CommandTimeout=30",
         "CHARGE_PERCENT": "1",
         "VAT_PERCENT": "7.5",
         "CHARGE_MIN_AMOUNT": "2",

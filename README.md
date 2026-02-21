@@ -7,6 +7,11 @@ FCY Payment Processor is a backend service for multi-currency wallet/account ope
 
 Transfers are processed through a transactional posting model with internal transient (suspense/GL) accounts to ensure controlled debit/credit movement, traceability, and settlement handling for both internal and external transfer scenarios.
 
+For solution design artifacts, refer to the `docs/` directory for:
+- architecture decisions
+- ERD
+- sequence flow
+
 ## Run with Docker Compose
 
 1. Install Docker + Docker Compose and ensure Docker daemon is running.
