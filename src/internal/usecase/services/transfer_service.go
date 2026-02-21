@@ -232,7 +232,8 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
 		TransferID:        createdTransfer.ID,
 		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		AccountNumber:     s.internalTransientAccountNumber,
+		DebitedAccount:    debitAccountNumber,
+		CreditedAccount:   s.internalTransientAccountNumber,
 		EntryType:         domain.LedgerEntryCredit,
 		Currency:          debitCurrency,
 		Amount:            sumTotal.StringFixed(2),
@@ -240,7 +241,8 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
 		TransferID:        createdTransfer.ID,
 		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		AccountNumber:     s.internalTransientAccountNumber,
+		DebitedAccount:    s.internalTransientAccountNumber,
+		CreditedAccount:   creditAccountNumber,
 		EntryType:         domain.LedgerEntryDebit,
 		Currency:          creditCurrency,
 		Amount:            creditAmount.StringFixed(2),
@@ -279,7 +281,8 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
 		TransferID:        createdTransfer.ID,
 		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		AccountNumber:     s.internalTransientAccountNumber,
+		DebitedAccount:    s.internalTransientAccountNumber,
+		CreditedAccount:   s.internalChargesAccountNumber,
 		EntryType:         domain.LedgerEntryDebit,
 		Currency:          debitCurrency,
 		Amount:            chargeAmount.StringFixed(2),
@@ -287,7 +290,8 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
 		TransferID:        createdTransfer.ID,
 		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		AccountNumber:     s.internalTransientAccountNumber,
+		DebitedAccount:    s.internalTransientAccountNumber,
+		CreditedAccount:   s.internalVATAccountNumber,
 		EntryType:         domain.LedgerEntryDebit,
 		Currency:          debitCurrency,
 		Amount:            vatAmount.StringFixed(2),
@@ -295,7 +299,8 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
 		TransferID:        createdTransfer.ID,
 		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		AccountNumber:     s.internalChargesAccountNumber,
+		DebitedAccount:    s.internalTransientAccountNumber,
+		CreditedAccount:   s.internalChargesAccountNumber,
 		EntryType:         domain.LedgerEntryCredit,
 		Currency:          "USD",
 		Amount:            chargeUSD.StringFixed(2),
@@ -303,7 +308,8 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
 		TransferID:        createdTransfer.ID,
 		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		AccountNumber:     s.internalVATAccountNumber,
+		DebitedAccount:    s.internalTransientAccountNumber,
+		CreditedAccount:   s.internalVATAccountNumber,
 		EntryType:         domain.LedgerEntryCredit,
 		Currency:          "USD",
 		Amount:            vatUSD.StringFixed(2),

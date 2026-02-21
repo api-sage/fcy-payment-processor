@@ -22,7 +22,8 @@ func (r *TransientAccountTransactionRepository) Create(ctx context.Context, entr
 	logger.Info("transient account transaction repository create", logger.Fields{
 		"transferId":        entry.TransferID,
 		"externalRefernece": entry.ExternalRefernece,
-		"accountNumber":     entry.AccountNumber,
+		"debitedAccount":    entry.DebitedAccount,
+		"creditedAccount":   entry.CreditedAccount,
 		"entryType":         entry.EntryType,
 		"currency":          entry.Currency,
 		"amount":            entry.Amount,
@@ -32,11 +33,12 @@ func (r *TransientAccountTransactionRepository) Create(ctx context.Context, entr
 INSERT INTO transient_account_transactions (
 	transfer_id,
 	external_refernece,
-	account_number,
+	debited_account,
+	credited_account,
 	entry_type,
 	currency,
 	amount
-) VALUES ($1, $2, $3, $4, $5, $6)
+) VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING id, created_at`
 
 	var (
@@ -49,7 +51,8 @@ RETURNING id, created_at`
 		query,
 		entry.TransferID,
 		entry.ExternalRefernece,
-		entry.AccountNumber,
+		entry.DebitedAccount,
+		entry.CreditedAccount,
 		entry.EntryType,
 		entry.Currency,
 		entry.Amount,

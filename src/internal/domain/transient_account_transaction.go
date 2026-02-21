@@ -13,7 +13,8 @@ type TransientAccountTransaction struct {
 	ID                string
 	TransferID        string
 	ExternalRefernece string
-	AccountNumber     string
+	DebitedAccount    string
+	CreditedAccount   string
 	EntryType         LedgerEntryType
 	Currency          string
 	Amount            string
