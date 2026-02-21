@@ -14,9 +14,12 @@ import (
 	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/memory"
 	"github.com/api-sage/ccy-payment-processor/src/internal/config"
 	"github.com/api-sage/ccy-payment-processor/src/internal/usecase/services"
+	"github.com/shopspring/decimal"
 )
 
 func main() {
+	decimal.MarshalJSONWithoutQuotes = true
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("load config: %v", err)
