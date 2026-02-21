@@ -3,6 +3,8 @@ package models
 import (
 	"errors"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 type CreateAccountRequest struct {
@@ -63,4 +65,50 @@ type GetAccountResponse struct {
 	Status           string `json:"status"`
 	CreatedAt        string `json:"createdAt"`
 	UpdatedAt        string `json:"updatedAt"`
+}
+
+type DepositFundsRequest struct {
+	AccountNumber string `json:"accountNumber"`
+	Amount        string `json:"amount"`
+}
+
+func (r DepositFundsRequest) Validate() error {
+	var errs []string
+
+	accountNumber := strings.TrimSpace(r.AccountNumber)
+	if len(accountNumber) != 10 {
+		errs = append(errs, "accountNumber must be exactly 10 digits")
+	} else {
+		for _, ch := range accountNumber {
+			if ch < '0' || ch > '9' {
+				errs = append(errs, "accountNumber must be exactly 10 digits")
+				break
+			}
+		}
+	}
+
+	amount := strings.TrimSpace(r.Amount)
+	if amount == "" {
+		errs = append(errs, "amount is required")
+	} else {
+		parsed, err := decimal.NewFromString(amount)
+		if err != nil {
+			errs = append(errs, "amount must be numeric")
+		} else if parsed.LessThanOrEqual(decimal.Zero) {
+			errs = append(errs, "amount must be greater than zero")
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.New(strings.Join(errs, "; "))
+	}
+	return nil
+}
+
+type DepositFundsResponse struct {
+	AccountNumber    string `json:"accountNumber"`
+	Currency         string `json:"currency"`
+	DepositedAmount  string `json:"depositedAmount"`
+	AvailableBalance string `json:"availableBalance"`
+	LedgerBalance    string `json:"ledgerBalance"`
 }

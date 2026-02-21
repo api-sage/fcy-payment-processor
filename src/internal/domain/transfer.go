@@ -8,11 +8,12 @@ const (
 	TransferStatusPending TransferStatus = "PENDING"
 	TransferStatusSuccess TransferStatus = "SUCCESS"
 	TransferStatusFailed  TransferStatus = "FAILED"
+	TransferStatusClosed  TransferStatus = "CLOSED"
 )
 
 type Transfer struct {
 	ID                   string
-	PaymentReference     *string
+	ExternalRefernece    *string
 	TransactionReference *string
 	DebitAccountNumber   string
 	CreditAccountNumber  *string
@@ -24,6 +25,7 @@ type Transfer struct {
 	FCYRate              string
 	ChargeAmount         string
 	VATAmount            string
+	Narration            *string
 	Status               TransferStatus
 	AuditPayload         string
 	CreatedAt            time.Time

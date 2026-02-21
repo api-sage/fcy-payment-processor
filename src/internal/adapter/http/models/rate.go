@@ -11,7 +11,7 @@ type RateResponse struct {
 	ID           int64  `json:"id"`
 	FromCurrency string `json:"fromCurrency"`
 	ToCurrency   string `json:"toCurrency"`
-	Rate         string `json:"rate"`
+	Rate         string `json:"Rate"`
 	RateDate     string `json:"rateDate"`
 	CreatedAt    string `json:"createdAt"`
 }
