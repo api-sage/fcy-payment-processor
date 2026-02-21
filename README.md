@@ -1,4 +1,4 @@
-# ccy-payment-processor
+# FCY-Payment-Processor
 A multi-currency payment processor.
 
 ## Run with Docker Compose

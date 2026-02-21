@@ -7,13 +7,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/controller"
-	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/middleware"
-	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/router"
-	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/implementations"
-	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/repository/memory"
-	"github.com/api-sage/ccy-payment-processor/src/internal/config"
-	"github.com/api-sage/ccy-payment-processor/src/internal/usecase/services"
+	"github.com/api-sage/fcy-payment-processor/src/internal/adapter/http/controller"
+	"github.com/api-sage/fcy-payment-processor/src/internal/adapter/http/middleware"
+	"github.com/api-sage/fcy-payment-processor/src/internal/adapter/http/router"
+	"github.com/api-sage/fcy-payment-processor/src/internal/adapter/repository/implementations"
+	"github.com/api-sage/fcy-payment-processor/src/internal/adapter/repository/memory"
+	"github.com/api-sage/fcy-payment-processor/src/internal/config"
+	"github.com/api-sage/fcy-payment-processor/src/internal/usecase/services"
 	"github.com/shopspring/decimal"
 )
 

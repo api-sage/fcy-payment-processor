@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
-	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
-	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
+	"github.com/api-sage/fcy-payment-processor/src/internal/commons"
+	"github.com/api-sage/fcy-payment-processor/src/internal/domain"
+	"github.com/api-sage/fcy-payment-processor/src/internal/logger"
 )
 
 type RateRepository struct {

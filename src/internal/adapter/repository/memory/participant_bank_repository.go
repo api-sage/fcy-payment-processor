@@ -3,8 +3,8 @@ package memory
 import (
 	"context"
 
-	"github.com/api-sage/ccy-payment-processor/src/internal/domain"
-	"github.com/api-sage/ccy-payment-processor/src/internal/logger"
+	"github.com/api-sage/fcy-payment-processor/src/internal/domain"
+	"github.com/api-sage/fcy-payment-processor/src/internal/logger"
 )
 
 type ParticipantBankRepository struct{}

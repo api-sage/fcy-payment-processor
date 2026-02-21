@@ -3,8 +3,8 @@ package service_interfaces
 import (
 	"context"
 
-	"github.com/api-sage/ccy-payment-processor/src/internal/adapter/http/models"
-	"github.com/api-sage/ccy-payment-processor/src/internal/commons"
+	"github.com/api-sage/fcy-payment-processor/src/internal/adapter/http/models"
+	"github.com/api-sage/fcy-payment-processor/src/internal/commons"
 )
 
 type TransferService interface {
