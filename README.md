@@ -1,6 +1,12 @@
 # FCY-Payment-Processor
 A multi-currency payment processor.
 
+## Project overview
+
+FCY Payment Processor is a backend service for multi-currency wallet/account operations and transfer processing. It supports user onboarding, account creation, funding, FX rate conversion, charges/VAT computation, and fund transfers across supported currencies (`USD`, `EUR`, `GBP`, `NGN`).
+
+Transfers are processed through a transactional posting model with internal transient (suspense/GL) accounts to ensure controlled debit/credit movement, traceability, and settlement handling for both internal and external transfer scenarios.
+
 ## Run with Docker Compose
 
 1. Install Docker + Docker Compose and ensure Docker daemon is running.
