@@ -30,7 +30,7 @@ The system implements concurrent goroutines in transfer processing and startup i
 **Key Performance Metrics:**
 - **Application startup time:** Average 180ms (including database migrations) - reduced from initial >250ms
 - **Transfer latency (with goroutines + optimized DB pool):** Average 110ms (lowest: 92ms)
-- **Transfer latency (sequential, same DB pool config):** Average 115ms (lowest: 110ms)
+- **Transfer latency (sequential, without goroutines, same DB pool config):** Average 115ms (lowest: 110ms)
 - **Performance improvement:** ~4.5% faster with optimized goroutines
 
 ### Database connection pool tuning impact
