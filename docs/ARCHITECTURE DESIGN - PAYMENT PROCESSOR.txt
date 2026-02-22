@@ -5,20 +5,49 @@ ARCHITECTURE DESIGN: FCY PAYMENT PROCESSOR (CLEAN ARCHITECTURE)
 Project layout
 --------------
 fcy-payment-processor/
+|- .dockerignore
+|- .git/
+|- .gitignore
+|- .vscode/
+|- docker-compose.yml
+|- Dockerfile
+|- go.mod
+|- go.sum
+|- LICENSE
+|- README.md
 |- docs/
 |  |- ARCHITECTURE DESIGN - PAYMENT PROCESSOR.txt
-|  `- PAYMENT PROCESSOR SYSTEM SEQUENCE FLOW.jpg
+|  |- BRD - FCY Payment Processing System.txt
+|  |- FCY PAYMENT PROCESSING SYSTEM SEQUENCE FLOW.drawio
+|  |- FCY Payment Processor ERD.drawio
 `- src/
-   |- cmd/server/main.go
+   |- cmd/
+   |  `- server/
+   |     `- main.go
    |- internal/
    |  |- adapter/
-   |  |  |- http/              (controllers, request/response models, router, swagger)
-   |  |  `- repository/        (postgres implementations + in-memory participant banks)
-   |  |- config/               (env/config loading)
-   |  |- domain/               (entities + domain interfaces)
-   |  |- logger/
-   |  `- usecase/              (service interfaces + service implementations)
+   |  |  |- http/
+   |  |  |  |- controller/      (HTTP request handlers for all endpoints)
+   |  |  |  |- middleware/      (authentication and other HTTP middleware)
+   |  |  |  |- models/          (request/response DTOs)
+   |  |  |  |- router/          (HTTP route setup and swagger definitions)
+   |  |  |  `- logging.go       (HTTP logging utilities)
+   |  |  `- repository/
+   |  |     |- implementations/ (PostgreSQL repository implementations)
+   |  |     |- memory/          (in-memory repository for participant banks)
+   |  |     |- repo_interfaces/ (repository interface definitions)
+   |  |     |- connection.go    (database connection setup and pooling)
+   |  |     |- migrator.go      (database migration runner)
+   |  |- commons/               (shared utilities: errors, response structures)
+   |  |- config/                (environment/configuration loading)
+   |  |- domain/                (core business entities and domain interfaces)
+   |  |- logger/                (logging utilities)
+   |  |- tests/                 (unit tests for services)
+   |  `- usecase/
+   |     |- service_interfaces/ (service interface definitions)
+   |     `- services/           (service implementation: business logic)
    `- migrations/
+      `- 001_initial_schema.sql (database schema migrations)
 
 
 1) Architecture style
