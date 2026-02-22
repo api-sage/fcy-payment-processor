@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/api-sage/fcy-payment-processor/src/internal/usecase/service_interfaces"
 	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
+	"golang.org/x/sync/errgroup"
 )
 
 // Verify that TransferService implements the service_interfaces.TransferService interface
@@ -109,16 +111,40 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	creditCurrency := strings.ToUpper(strings.TrimSpace(req.CreditCurrency))
 	debitAmount := req.DebitAmount
 
-	debitAccount, err := s.accountRepo.GetByAccountNumber(ctx, debitAccountNumber)
-	if err != nil {
-		if errors.Is(err, commons.ErrRecordNotFound) {
+	// Fetch both accounts in parallel
+	var debitAccount, creditAccount *domain.Account
+	eg, egCtx := errgroup.WithContext(ctx)
+
+	eg.Go(func() error {
+		var err error
+		debitAccount, err = s.accountRepo.GetByAccountNumber(egCtx, debitAccountNumber)
+		if err != nil {
+			if errors.Is(err, commons.ErrRecordNotFound) {
+				return fmt.Errorf("debit account not found")
+			}
+			return fmt.Errorf("failed to fetch debit account")
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		var err error
+		creditAccount, err = s.accountRepo.GetByAccountNumber(egCtx, creditAccountNumber)
+		if err != nil {
+			if errors.Is(err, commons.ErrRecordNotFound) {
+				return fmt.Errorf("credit account not found")
+			}
+			return fmt.Errorf("failed to fetch credit account")
+		}
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "debit account not found") {
 			return commons.ErrorResponse[models.InternalTransferResponse]("Debit account not found"), err
 		}
-		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
-	}
-	creditAccount, err := s.accountRepo.GetByAccountNumber(ctx, creditAccountNumber)
-	if err != nil {
-		if errors.Is(err, commons.ErrRecordNotFound) {
+		if strings.Contains(errMsg, "credit account not found") {
 			return commons.ErrorResponse[models.InternalTransferResponse]("Credit account not found"), err
 		}
 		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
@@ -157,9 +183,28 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		return commons.ErrorResponse[models.InternalTransferResponse]("validation failed", err.Error()), err
 	}
 
-	convertedAmount, rateUsed, _, err := s.rateService.ConvertRate(ctx, debitAmount, debitCurrency, creditCurrency)
-	_, _, chargeAmount, vatAmount, sumTotal, err := s.chargeService.GetCharges(ctx, debitAmount, debitCurrency)
-	if err != nil {
+	// Fetch rate conversion and charges in parallel
+	var convertedAmount, rateUsed, chargeAmount, vatAmount, sumTotal decimal.Decimal
+	eg2, eg2Ctx := errgroup.WithContext(ctx)
+
+	eg2.Go(func() error {
+		var err error
+		var tempRateUsed, _ decimal.Decimal
+		convertedAmount, tempRateUsed, _, err = s.rateService.ConvertRate(eg2Ctx, debitAmount, debitCurrency, creditCurrency)
+		rateUsed = tempRateUsed
+		return err
+	})
+
+	eg2.Go(func() error {
+		var err error
+		var tempChargeAmount, tempVatAmount decimal.Decimal
+		_, _, tempChargeAmount, tempVatAmount, sumTotal, err = s.chargeService.GetCharges(eg2Ctx, debitAmount, debitCurrency)
+		chargeAmount = tempChargeAmount
+		vatAmount = tempVatAmount
+		return err
+	})
+
+	if err := eg2.Wait(); err != nil {
 		return commons.ErrorResponse[models.InternalTransferResponse]("failed to process transfer", "Unable to process transfer right now"), err
 	}
 
@@ -222,24 +267,34 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		return commons.ErrorResponse[models.InternalTransferResponse]("transfer failed", "Unable to complete transfer posting"), postingErr
 	}
 
-	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
-		TransferID:        createdTransfer.ID,
-		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		DebitedAccount:    debitAccountNumber,
-		CreditedAccount:   s.internalTransientAccountNumber,
-		EntryType:         domain.LedgerEntryCredit,
-		Currency:          debitCurrency,
-		Amount:            sumTotal,
-	})
-	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
-		TransferID:        createdTransfer.ID,
-		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		DebitedAccount:    s.internalTransientAccountNumber,
-		CreditedAccount:   creditAccountNumber,
-		EntryType:         domain.LedgerEntryDebit,
-		Currency:          creditCurrency,
-		Amount:            creditAmount,
-	})
+	// Create both transient account transaction entries in parallel
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
+			TransferID:        createdTransfer.ID,
+			ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
+			DebitedAccount:    debitAccountNumber,
+			CreditedAccount:   s.internalTransientAccountNumber,
+			EntryType:         domain.LedgerEntryCredit,
+			Currency:          debitCurrency,
+			Amount:            sumTotal,
+		})
+	}()
+	go func() {
+		defer wg.Done()
+		_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
+			TransferID:        createdTransfer.ID,
+			ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
+			DebitedAccount:    s.internalTransientAccountNumber,
+			CreditedAccount:   creditAccountNumber,
+			EntryType:         domain.LedgerEntryDebit,
+			Currency:          creditCurrency,
+			Amount:            creditAmount,
+		})
+	}()
+	wg.Wait()
 
 	_ = s.transferRepo.UpdateStatus(ctx, createdTransfer.ID, domain.TransferStatusSuccess)
 	createdTransfer.Status = domain.TransferStatusSuccess
@@ -271,42 +326,58 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 		return commons.SuccessResponse("Transaction successful. Settlement pending", response), nil
 	}
 
-	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
-		TransferID:        createdTransfer.ID,
-		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		DebitedAccount:    s.internalTransientAccountNumber,
-		CreditedAccount:   s.internalChargesAccountNumber,
-		EntryType:         domain.LedgerEntryDebit,
-		Currency:          debitCurrency,
-		Amount:            chargeAmount,
-	})
-	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
-		TransferID:        createdTransfer.ID,
-		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		DebitedAccount:    s.internalTransientAccountNumber,
-		CreditedAccount:   s.internalVATAccountNumber,
-		EntryType:         domain.LedgerEntryDebit,
-		Currency:          debitCurrency,
-		Amount:            vatAmount,
-	})
-	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
-		TransferID:        createdTransfer.ID,
-		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		DebitedAccount:    s.internalTransientAccountNumber,
-		CreditedAccount:   s.internalChargesAccountNumber,
-		EntryType:         domain.LedgerEntryCredit,
-		Currency:          "USD",
-		Amount:            chargeUSD,
-	})
-	_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
-		TransferID:        createdTransfer.ID,
-		ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
-		DebitedAccount:    s.internalTransientAccountNumber,
-		CreditedAccount:   s.internalVATAccountNumber,
-		EntryType:         domain.LedgerEntryCredit,
-		Currency:          "USD",
-		Amount:            vatUSD,
-	})
+	// Create all fee settlement transaction entries in parallel
+	var wg2 sync.WaitGroup
+	wg2.Add(4)
+	go func() {
+		defer wg2.Done()
+		_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
+			TransferID:        createdTransfer.ID,
+			ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
+			DebitedAccount:    s.internalTransientAccountNumber,
+			CreditedAccount:   s.internalChargesAccountNumber,
+			EntryType:         domain.LedgerEntryDebit,
+			Currency:          debitCurrency,
+			Amount:            chargeAmount,
+		})
+	}()
+	go func() {
+		defer wg2.Done()
+		_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
+			TransferID:        createdTransfer.ID,
+			ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
+			DebitedAccount:    s.internalTransientAccountNumber,
+			CreditedAccount:   s.internalVATAccountNumber,
+			EntryType:         domain.LedgerEntryDebit,
+			Currency:          debitCurrency,
+			Amount:            vatAmount,
+		})
+	}()
+	go func() {
+		defer wg2.Done()
+		_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
+			TransferID:        createdTransfer.ID,
+			ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
+			DebitedAccount:    s.internalTransientAccountNumber,
+			CreditedAccount:   s.internalChargesAccountNumber,
+			EntryType:         domain.LedgerEntryCredit,
+			Currency:          "USD",
+			Amount:            chargeUSD,
+		})
+	}()
+	go func() {
+		defer wg2.Done()
+		_, _ = s.transientAccountTransactionRepo.Create(ctx, domain.TransientAccountTransaction{
+			TransferID:        createdTransfer.ID,
+			ExternalRefernece: valueOrEmpty(createdTransfer.TransactionReference),
+			DebitedAccount:    s.internalTransientAccountNumber,
+			CreditedAccount:   s.internalVATAccountNumber,
+			EntryType:         domain.LedgerEntryCredit,
+			Currency:          "USD",
+			Amount:            vatUSD,
+		})
+	}()
+	wg2.Wait()
 
 	_ = s.transferRepo.UpdateStatus(ctx, createdTransfer.ID, domain.TransferStatusClosed)
 	createdTransfer.Status = domain.TransferStatusClosed
