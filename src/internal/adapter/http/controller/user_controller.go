@@ -9,41 +9,41 @@ import (
 	"github.com/api-sage/fcy-payment-processor/src/internal/adapter/http/models"
 	"github.com/api-sage/fcy-payment-processor/src/internal/commons"
 	"github.com/api-sage/fcy-payment-processor/src/internal/logger"
+	"github.com/api-sage/fcy-payment-processor/src/internal/usecase/service_interfaces"
 )
 
-type UserService interface {
-	CreateUser(ctx context.Context, req models.CreateUserRequest) (commons.Response[models.CreateUserResponse], error)
-	GetUser(ctx context.Context, id string) (commons.Response[models.GetUserResponse], error)
-	VerifyUserPin(ctx context.Context, customerID string, pin string) (commons.Response[models.VerifyUserPinResponse], error)
-}
+const (
+	createUserPath   = "/create-user"
+	verifyUserPinPath = "/verify-pin"
+)
 
 type UserController struct {
-	service UserService
+	service service_interfaces.UserService
 }
 
-func NewUserController(service UserService) *UserController {
+func NewUserController(service service_interfaces.UserService) *UserController {
 	return &UserController{service: service}
 }
 
 func (c *UserController) RegisterRoutes(mux *http.ServeMux, authMiddleware func(http.Handler) http.Handler) {
-	handler := http.HandlerFunc(c.createUser)
+	createUserHandler := http.HandlerFunc(c.createUser)
 	verifyPinHandler := http.HandlerFunc(c.verifyUserPin)
+
 	if authMiddleware != nil {
-		handler = authMiddleware(handler).ServeHTTP
-		verifyPinHandler = authMiddleware(verifyPinHandler).ServeHTTP
+		createUserHandler = authMiddleware(createUserHandler)
+		verifyPinHandler = authMiddleware(verifyPinHandler)
 	}
-	mux.Handle("/create-user", http.HandlerFunc(handler))
-	mux.Handle("/verify-pin", http.HandlerFunc(verifyPinHandler))
+
+	mux.Handle(createUserPath, createUserHandler)
+	mux.Handle(verifyUserPinPath, verifyPinHandler)
 }
 
 func (c *UserController) createUser(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	logRequest(r, nil)
 
 	if r.Method != http.MethodPost {
 		response := commons.ErrorResponse[models.CreateUserResponse]("method not allowed")
-		writeJSON(w, http.StatusMethodNotAllowed, response)
-		logResponse(r, http.StatusMethodNotAllowed, response, start)
+		c.respondError(w, http.StatusMethodNotAllowed, response, r, start)
 		return
 	}
 
@@ -51,44 +51,35 @@ func (c *UserController) createUser(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logError(r, err, nil)
 		response := commons.ErrorResponse[models.CreateUserResponse]("invalid request body", err.Error())
-		writeJSON(w, http.StatusBadRequest, response)
-		logResponse(r, http.StatusBadRequest, response, start)
+		c.respondError(w, http.StatusBadRequest, response, r, start)
 		return
 	}
-	logRequest(r, req)
 
 	if err := req.Validate(); err != nil {
 		logError(r, err, nil)
 		response := commons.ErrorResponse[models.CreateUserResponse]("validation failed", err.Error())
-		writeJSON(w, http.StatusBadRequest, response)
-		logResponse(r, http.StatusBadRequest, response, start)
+		c.respondError(w, http.StatusBadRequest, response, r, start)
 		return
 	}
 
+	logRequest(r, req)
 	response, err := c.service.CreateUser(r.Context(), req)
 	if err != nil {
 		logError(r, err, logger.Fields{"message": response.Message})
-		status := http.StatusInternalServerError
-		if response.Message == "validation failed" {
-			status = http.StatusBadRequest
-		}
-		writeJSON(w, status, response)
-		logResponse(r, status, response, start)
+		status := mapUserResponseToStatus(response.Message)
+		c.respondError(w, status, response, r, start)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, response)
-	logResponse(r, http.StatusCreated, response, start)
+	c.respondSuccess(w, http.StatusCreated, response, r, start)
 }
 
 func (c *UserController) verifyUserPin(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	logRequest(r, nil)
 
 	if r.Method != http.MethodPost {
 		response := commons.ErrorResponse[models.VerifyUserPinResponse]("method not allowed")
-		writeJSON(w, http.StatusMethodNotAllowed, response)
-		logResponse(r, http.StatusMethodNotAllowed, response, start)
+		c.respondError(w, http.StatusMethodNotAllowed, response, r, start)
 		return
 	}
 
@@ -96,35 +87,53 @@ func (c *UserController) verifyUserPin(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logError(r, err, nil)
 		response := commons.ErrorResponse[models.VerifyUserPinResponse]("invalid request body", err.Error())
-		writeJSON(w, http.StatusBadRequest, response)
-		logResponse(r, http.StatusBadRequest, response, start)
+		c.respondError(w, http.StatusBadRequest, response, r, start)
 		return
 	}
-	logRequest(r, req)
 
 	if err := req.Validate(); err != nil {
 		logError(r, err, nil)
 		response := commons.ErrorResponse[models.VerifyUserPinResponse]("validation failed", err.Error())
-		writeJSON(w, http.StatusBadRequest, response)
-		logResponse(r, http.StatusBadRequest, response, start)
+		c.respondError(w, http.StatusBadRequest, response, r, start)
 		return
 	}
 
+	logRequest(r, req)
 	response, err := c.service.VerifyUserPin(r.Context(), req.CustomerID, req.Pin)
 	if err != nil {
 		logError(r, err, logger.Fields{"message": response.Message})
-		status := http.StatusInternalServerError
-		if response.Message == "validation failed" || response.Message == "invalid pin" {
-			status = http.StatusBadRequest
-		}
-		if response.Message == "User not found" {
-			status = http.StatusNotFound
-		}
-		writeJSON(w, status, response)
-		logResponse(r, status, response, start)
+		status := mapUserResponseToStatus(response.Message)
+		c.respondError(w, status, response, r, start)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, response)
-	logResponse(r, http.StatusOK, response, start)
+	c.respondSuccess(w, http.StatusOK, response, r, start)
+}
+
+// mapUserResponseToStatus maps user response messages to appropriate HTTP status codes
+func mapUserResponseToStatus(message string) int {
+	switch message {
+	case "validation failed", "invalid pin":
+		return http.StatusBadRequest
+	case "User not found":
+		return http.StatusNotFound
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+// respondSuccess sends a successful JSON response with logging
+func (c *UserController) respondSuccess(w http.ResponseWriter, status int, payload any, r *http.Request, start time.Time) {
+	if err := writeJSON(w, status, payload); err != nil {
+		logError(r, err, logger.Fields{"action": "write response"})
+	}
+	logResponse(r, status, payload, start)
+}
+
+// respondError sends an error JSON response with logging
+func (c *UserController) respondError(w http.ResponseWriter, status int, payload any, r *http.Request, start time.Time) {
+	if err := writeJSON(w, status, payload); err != nil {
+		logError(r, err, logger.Fields{"action": "write error response"})
+	}
+	logResponse(r, status, payload, start)
 }
