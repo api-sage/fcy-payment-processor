@@ -19,6 +19,7 @@ import (
 )
 
 func main() {
+	startupStart := time.Now()
 	decimal.MarshalJSONWithoutQuotes = true
 
 	cfg, err := config.Load()
@@ -181,6 +182,13 @@ func main() {
 	}
 
 	addr := ":" + port
+	startupDuration := time.Since(startupStart)
+	log.Printf("==================================================")
+	log.Printf("Application startup completed")
+	log.Printf("Start time: %v", startupStart.Format("2006-01-02 15:04:05.000"))
+	log.Printf("End time:   %v", time.Now().Format("2006-01-02 15:04:05.000"))
+	log.Printf("Total time: %v", startupDuration)
+	log.Printf("==================================================")
 	log.Printf("server listening on %s", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("start http server: %v", err)

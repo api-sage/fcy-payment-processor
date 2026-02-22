@@ -112,30 +112,32 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	debitAmount := req.DebitAmount
 
 	// Fetch both accounts in parallel
-	var debitAccount, creditAccount *domain.Account
+	var debitAccount, creditAccount domain.Account
 	eg, egCtx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
 		var err error
-		debitAccount, err = s.accountRepo.GetByAccountNumber(egCtx, debitAccountNumber)
+		account, err := s.accountRepo.GetByAccountNumber(egCtx, debitAccountNumber)
 		if err != nil {
 			if errors.Is(err, commons.ErrRecordNotFound) {
 				return fmt.Errorf("debit account not found")
 			}
 			return fmt.Errorf("failed to fetch debit account")
 		}
+		debitAccount = account
 		return nil
 	})
 
 	eg.Go(func() error {
 		var err error
-		creditAccount, err = s.accountRepo.GetByAccountNumber(egCtx, creditAccountNumber)
+		account, err := s.accountRepo.GetByAccountNumber(egCtx, creditAccountNumber)
 		if err != nil {
 			if errors.Is(err, commons.ErrRecordNotFound) {
 				return fmt.Errorf("credit account not found")
 			}
 			return fmt.Errorf("failed to fetch credit account")
 		}
+		creditAccount = account
 		return nil
 	})
 
@@ -215,6 +217,7 @@ func (s *TransferService) TransferFunds(ctx context.Context, req models.Internal
 	auditPayload := string(auditPayloadBytes)
 
 	var createdTransfer domain.Transfer
+	var err error
 	for attempt := 0; attempt < 5; attempt++ {
 		reference := generateThirtyDigitTransferReference()
 		transferRecord := domain.Transfer{
