@@ -11,8 +11,12 @@ import (
 	"github.com/api-sage/fcy-payment-processor/src/internal/commons"
 	"github.com/api-sage/fcy-payment-processor/src/internal/domain"
 	"github.com/api-sage/fcy-payment-processor/src/internal/logger"
+	"github.com/api-sage/fcy-payment-processor/src/internal/usecase/service_interfaces"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// Verify that UserService implements the service_interfaces.UserService interface
+var _ service_interfaces.UserService = (*UserService)(nil)
 
 type UserService struct {
 	userRepo domain.UserRepository

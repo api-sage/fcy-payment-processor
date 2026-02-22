@@ -19,6 +19,9 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// Verify that TransferService implements the service_interfaces.TransferService interface
+var _ service_interfaces.TransferService = (*TransferService)(nil)
+
 type TransferService struct {
 	transferRepo                    repo_interfaces.TransferRepository
 	accountRepo                     repo_interfaces.AccountRepository

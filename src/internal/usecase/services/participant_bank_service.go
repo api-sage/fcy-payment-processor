@@ -7,7 +7,11 @@ import (
 	"github.com/api-sage/fcy-payment-processor/src/internal/commons"
 	"github.com/api-sage/fcy-payment-processor/src/internal/domain"
 	"github.com/api-sage/fcy-payment-processor/src/internal/logger"
+	"github.com/api-sage/fcy-payment-processor/src/internal/usecase/service_interfaces"
 )
+
+// Verify that ParticipantBankService implements the service_interfaces.ParticipantBankService interface
+var _ service_interfaces.ParticipantBankService = (*ParticipantBankService)(nil)
 
 type ParticipantBankService struct {
 	participantBankRepo domain.ParticipantBankRepository

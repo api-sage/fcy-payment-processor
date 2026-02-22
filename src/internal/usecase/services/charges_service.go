@@ -10,8 +10,12 @@ import (
 	"github.com/api-sage/fcy-payment-processor/src/internal/adapter/repository/repo_interfaces"
 	"github.com/api-sage/fcy-payment-processor/src/internal/commons"
 	"github.com/api-sage/fcy-payment-processor/src/internal/logger"
+	"github.com/api-sage/fcy-payment-processor/src/internal/usecase/service_interfaces"
 	"github.com/shopspring/decimal"
 )
+
+// Verify that ChargesService implements the service_interfaces.ChargesService interface
+var _ service_interfaces.ChargesService = (*ChargesService)(nil)
 
 type ChargesService struct {
 	rateRepo      repo_interfaces.RateRepository
