@@ -27,8 +27,8 @@ services:
     environment:
       PORT: "8080"
       DATABASE_DSN: "postgresql://neondb_owner:npg_Xe6qn2RiFGpZ@ep-quiet-art-b4gedixw-pooler.c-6.us-east-2.aws.neon.tech/payment_system_db?sslmode=require&channel_binding=require"
-      CHANNEL_ID: "GreyApp"
-      CHANNEL_KEY: "GreyHoundKey001"
+      CHANNEL_ID: "CalipaAgent"
+      CHANNEL_KEY: "CalipaKey001"
       GREY_BANK_CODE: "100100"
       CHARGE_PERCENT: "1"
       VAT_PERCENT: "7.5"

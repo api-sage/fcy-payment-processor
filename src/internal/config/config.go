@@ -10,8 +10,8 @@ import (
 )
 
 const defaultConnectionString = "postgresql://neondb_owner:npg_Xe6qn2RiFGpZ@ep-quiet-art-b4gedixw-pooler.c-6.us-east-2.aws.neon.tech/payment_system_db?sslmode=require&channel_binding=require"
-const defaultChannelID = "GreyApp"
-const defaultChannelKey = "GreyHoundKey001"
+const defaultChannelID = "CalipaAgent"
+const defaultChannelKey = "CalipaKey001"
 const defaultGreyBankCode = "100100"
 const defaultChargePercent = "1"
 const defaultVATPercent = "7.5"
