@@ -106,6 +106,12 @@ func New(ctx context.Context) (http.Handler, error) {
 	)
 	transferController := controller.NewTransferController(transferService)
 
+	glTransactionService := services.NewGLTransactionService(transientAccountTransactionRepo)
+	glTransactionController := controller.NewGLTransactionController(glTransactionService)
+
+	transactionService := services.NewTransactionService(transientAccountTransactionRepo)
+	transactionController := controller.NewTransactionController(transactionService)
+
 	return router.New(
 		accountController,
 		userController,
@@ -113,6 +119,8 @@ func New(ctx context.Context) (http.Handler, error) {
 		rateController,
 		chargesController,
 		transferController,
+		glTransactionController,
+		transactionController,
 		middleware.BasicAuth(cfg.ChannelID, cfg.ChannelKey),
 	), nil
 }

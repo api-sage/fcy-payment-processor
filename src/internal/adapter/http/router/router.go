@@ -26,6 +26,14 @@ type TransferRouteRegistrar interface {
 	RegisterRoutes(mux *http.ServeMux, authMiddleware func(http.Handler) http.Handler)
 }
 
+type GLTransactionRouteRegistrar interface {
+	RegisterRoutes(mux *http.ServeMux, authMiddleware func(http.Handler) http.Handler)
+}
+
+type TransactionRouteRegistrar interface {
+	RegisterRoutes(mux *http.ServeMux, authMiddleware func(http.Handler) http.Handler)
+}
+
 func New(
 	accountController AccountRouteRegistrar,
 	userController UserRouteRegistrar,
@@ -33,6 +41,8 @@ func New(
 	rateController RateRouteRegistrar,
 	chargesController ChargesRouteRegistrar,
 	transferController TransferRouteRegistrar,
+	glTransactionController GLTransactionRouteRegistrar,
+	transactionController TransactionRouteRegistrar,
 	authMiddleware func(http.Handler) http.Handler,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
@@ -55,6 +65,12 @@ func New(
 	}
 	if transferController != nil {
 		transferController.RegisterRoutes(mux, authMiddleware)
+	}
+	if glTransactionController != nil {
+		glTransactionController.RegisterRoutes(mux, authMiddleware)
+	}
+	if transactionController != nil {
+		transactionController.RegisterRoutes(mux, authMiddleware)
 	}
 
 	return mux

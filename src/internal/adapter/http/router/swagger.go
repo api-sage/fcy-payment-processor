@@ -292,6 +292,44 @@ const openAPI = `{
         }
       }
     },
+    "/get-transaction": {
+      "get": {
+        "summary": "Get transactions by transaction reference",
+        "description": "Returns every transient account transaction whose external_refernece equals the supplied transactionReference, oldest first.",
+        "security": [{"BasicAuth": []}],
+        "parameters": [
+          {"name": "transactionReference", "in": "query", "required": true, "description": "Reference matched against external_refernece (max 64 characters)", "schema": {"type": "string", "maxLength": 64, "example": "TXN-0001"}}
+        ],
+        "responses": {
+          "200": {"description": "Transactions fetched (items is empty when none match)"},
+          "400": {"description": "Validation error"},
+          "401": {"description": "Unauthorized"},
+          "405": {"description": "Method not allowed"},
+          "500": {"description": "Server error"}
+        }
+      }
+    },
+    "/get-gl-transactions": {
+      "get": {
+        "summary": "List GL transactions",
+        "description": "Returns a paginated list of transient account transactions, newest first. All filters are optional. startDate is inclusive and endDate is inclusive for the whole day.",
+        "security": [{"BasicAuth": []}],
+        "parameters": [
+          {"name": "startDate", "in": "query", "required": false, "schema": {"type": "string", "format": "date", "example": "2026-01-01"}},
+          {"name": "endDate", "in": "query", "required": false, "schema": {"type": "string", "format": "date", "example": "2026-01-31"}},
+          {"name": "glAccountNumber", "in": "query", "required": false, "description": "Matches entries where this account is either debited or credited", "schema": {"type": "string", "example": "0125548977"}},
+          {"name": "page", "in": "query", "required": false, "schema": {"type": "integer", "minimum": 1, "default": 1}},
+          {"name": "pageSize", "in": "query", "required": false, "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20}}
+        ],
+        "responses": {
+          "200": {"description": "GL transactions fetched"},
+          "400": {"description": "Validation error"},
+          "401": {"description": "Unauthorized"},
+          "405": {"description": "Method not allowed"},
+          "500": {"description": "Server error"}
+        }
+      }
+    },
     "/get-charges": {
       "get": {
         "summary": "Get charge and VAT breakdown",
