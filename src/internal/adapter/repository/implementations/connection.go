@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func Open(ctx context.Context, dsn string) (*sql.DB, error) {
+func Open(ctx context.Context, dsn string, maxOpenConns, maxIdleConns int) (*sql.DB, error) {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open postgres connection: %w", err)
@@ -18,9 +18,8 @@ func Open(ctx context.Context, dsn string) (*sql.DB, error) {
 		return nil, fmt.Errorf("ping postgres: %w", err)
 	}
 
-	// Configure connection pool for concurrent goroutines
-	db.SetMaxIdleConns(20)
-	db.SetMaxOpenConns(30)
+	db.SetMaxIdleConns(maxIdleConns)
+	db.SetMaxOpenConns(maxOpenConns)
 	db.SetConnMaxIdleTime(5 * time.Minute)
 	db.SetConnMaxLifetime(15 * time.Minute)
 
