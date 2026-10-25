@@ -9,7 +9,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-const defaultConnectionString = "Host=localhost;Port=5432;Database=payment_system_db;Username=postgres;Password=postgres;Timeout=30;CommandTimeout=30"
+const defaultConnectionString = "postgresql://neondb_owner:npg_Xe6qn2RiFGpZ@ep-quiet-art-b4gedixw-pooler.c-6.us-east-2.aws.neon.tech/payment_system_db?sslmode=require&channel_binding=require"
 const defaultChannelID = "GreyApp"
 const defaultChannelKey = "GreyHoundKey001"
 const defaultGreyBankCode = "100100"
@@ -158,6 +158,11 @@ func parseDecimalEnv(key string, fallback string) (decimal.Decimal, error) {
 }
 
 func normalizeConnectionString(raw string) string {
+	// URL-form DSNs are already valid for lib/pq; rewriting them would lowercase the password.
+	if strings.HasPrefix(raw, "postgres://") || strings.HasPrefix(raw, "postgresql://") {
+		return raw
+	}
+
 	parts := strings.Split(raw, ";")
 	out := make([]string, 0, len(parts))
 	hasSSLMode := false

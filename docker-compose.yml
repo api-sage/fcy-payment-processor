@@ -26,7 +26,7 @@ services:
         condition: service_healthy
     environment:
       PORT: "8080"
-      DATABASE_DSN: "Host=db;Port=5432;Database=payment_system_db;Username=postgres;Password=postgres;Timeout=30;CommandTimeout=30"
+      DATABASE_DSN: "postgresql://neondb_owner:npg_Xe6qn2RiFGpZ@ep-quiet-art-b4gedixw-pooler.c-6.us-east-2.aws.neon.tech/payment_system_db?sslmode=require&channel_binding=require"
       CHANNEL_ID: "GreyApp"
       CHANNEL_KEY: "GreyHoundKey001"
       GREY_BANK_CODE: "100100"
