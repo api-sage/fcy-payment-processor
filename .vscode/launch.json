@@ -10,8 +10,8 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "PORT": "8080",
-        "CHANNEL_ID": "GreyApp",
-        "CHANNEL_KEY": "GreyHoundKey001",
+        "CHANNEL_ID": "CalipaAgent",
+        "CHANNEL_KEY": "CalipaKey001",
         "DATABASE_DSN": "postgresql://neondb_owner:npg_Xe6qn2RiFGpZ@ep-quiet-art-b4gedixw-pooler.c-6.us-east-2.aws.neon.tech/payment_system_db?sslmode=require&channel_binding=require",
         "CHARGE_PERCENT": "1",
         "VAT_PERCENT": "7.5",
