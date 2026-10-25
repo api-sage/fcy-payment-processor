@@ -28,6 +28,10 @@ func (s *glTransactionRepoStub) List(ctx context.Context, filter domain.Transien
 	return nil, 0, nil
 }
 
+func (s *glTransactionRepoStub) FindByExternalReference(context.Context, string) ([]domain.TransientAccountTransaction, error) {
+	return nil, nil
+}
+
 func TestGLTransactionServiceGetGLTransactionsPagination(t *testing.T) {
 	var captured domain.TransientAccountTransactionFilter
 	repo := &glTransactionRepoStub{

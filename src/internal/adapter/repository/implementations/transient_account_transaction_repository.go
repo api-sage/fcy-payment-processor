@@ -131,6 +131,50 @@ LIMIT %s OFFSET %s`,
 		logger.Error("transient account transaction repository list failed", err, nil)
 		return nil, 0, fmt.Errorf("list transient account transactions: %w", err)
 	}
+
+	entries, err := scanTransientAccountTransactions(rows)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	logger.Info("transient account transaction repository list success", logger.Fields{
+		"count": len(entries),
+		"total": total,
+	})
+
+	return entries, total, nil
+}
+
+// FindByExternalReference returns every transient account transaction that shares the given external reference, oldest first.
+func (r *TransientAccountTransactionRepository) FindByExternalReference(ctx context.Context, reference string) ([]domain.TransientAccountTransaction, error) {
+	logger.Info("transient account transaction repository find by external reference", logger.Fields{
+		"externalReference": reference,
+	})
+
+	rows, err := r.db.QueryContext(ctx, `
+SELECT id, transfer_id, external_refernece, debited_account, credited_account, entry_type, currency, amount, created_at
+FROM transient_account_transactions
+WHERE external_refernece = $1
+ORDER BY created_at ASC, id ASC`, reference)
+	if err != nil {
+		logger.Error("transient account transaction repository find by external reference failed", err, nil)
+		return nil, fmt.Errorf("find transient account transactions by external reference: %w", err)
+	}
+
+	entries, err := scanTransientAccountTransactions(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("transient account transaction repository find by external reference success", logger.Fields{
+		"count": len(entries),
+	})
+
+	return entries, nil
+}
+
+// scanTransientAccountTransactions reads and closes rows from a transient_account_transactions select.
+func scanTransientAccountTransactions(rows *sql.Rows) ([]domain.TransientAccountTransaction, error) {
 	defer rows.Close()
 
 	entries := make([]domain.TransientAccountTransaction, 0)
@@ -152,7 +196,7 @@ LIMIT %s OFFSET %s`,
 			&entry.CreatedAt,
 		); err != nil {
 			logger.Error("transient account transaction repository scan failed", err, nil)
-			return nil, 0, fmt.Errorf("scan transient account transaction: %w", err)
+			return nil, fmt.Errorf("scan transient account transaction: %w", err)
 		}
 		entry.DebitedAccount = debitedAccount.String
 		entry.CreditedAccount = creditedAccount.String
@@ -161,13 +205,8 @@ LIMIT %s OFFSET %s`,
 
 	if err := rows.Err(); err != nil {
 		logger.Error("transient account transaction repository iterate failed", err, nil)
-		return nil, 0, fmt.Errorf("iterate transient account transactions: %w", err)
+		return nil, fmt.Errorf("iterate transient account transactions: %w", err)
 	}
 
-	logger.Info("transient account transaction repository list success", logger.Fields{
-		"count": len(entries),
-		"total": total,
-	})
-
-	return entries, total, nil
+	return entries, nil
 }

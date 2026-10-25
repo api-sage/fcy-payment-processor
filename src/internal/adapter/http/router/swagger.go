@@ -292,6 +292,23 @@ const openAPI = `{
         }
       }
     },
+    "/get-transaction": {
+      "get": {
+        "summary": "Get transactions by transaction reference",
+        "description": "Returns every transient account transaction whose external_refernece equals the supplied transactionReference, oldest first.",
+        "security": [{"BasicAuth": []}],
+        "parameters": [
+          {"name": "transactionReference", "in": "query", "required": true, "description": "Reference matched against external_refernece (max 64 characters)", "schema": {"type": "string", "maxLength": 64, "example": "TXN-0001"}}
+        ],
+        "responses": {
+          "200": {"description": "Transactions fetched (items is empty when none match)"},
+          "400": {"description": "Validation error"},
+          "401": {"description": "Unauthorized"},
+          "405": {"description": "Method not allowed"},
+          "500": {"description": "Server error"}
+        }
+      }
+    },
     "/get-gl-transactions": {
       "get": {
         "summary": "List GL transactions",
