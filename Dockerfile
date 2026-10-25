@@ -15,7 +15,6 @@ WORKDIR /app
 RUN adduser -D -u 10001 appuser
 
 COPY --from=builder /bin/server /app/server
-COPY --from=builder /app/src/migrations /app/src/migrations
 
 EXPOSE 8080
 

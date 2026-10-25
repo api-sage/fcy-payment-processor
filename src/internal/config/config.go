@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/shopspring/decimal"
@@ -24,10 +24,13 @@ const defaultExternalUSDGLAccountNumber = "0125548977"
 const defaultExternalGBPGLAccountNumber = "0125548978"
 const defaultExternalEURGLAccountNumber = "0125548979"
 const defaultExternalNGNGLAccountNumber = "0125548980"
+const defaultDBMaxOpenConns = "30"
+const defaultDBMaxIdleConns = "20"
 
 type Config struct {
 	DatabaseDSN                    string
-	MigrationsDir                  string
+	DBMaxOpenConns                 int
+	DBMaxIdleConns                 int
 	ChannelID                      string
 	ChannelKey                     string
 	GreyBankCode                   string
@@ -71,6 +74,16 @@ func Load() (Config, error) {
 	}
 
 	vatPercent, err := parseDecimalEnv("VAT_PERCENT", defaultVATPercent)
+	if err != nil {
+		return Config{}, err
+	}
+
+	dbMaxOpenConns, err := parseIntEnv("DB_MAX_OPEN_CONNS", defaultDBMaxOpenConns)
+	if err != nil {
+		return Config{}, err
+	}
+
+	dbMaxIdleConns, err := parseIntEnv("DB_MAX_IDLE_CONNS", defaultDBMaxIdleConns)
 	if err != nil {
 		return Config{}, err
 	}
@@ -122,7 +135,8 @@ func Load() (Config, error) {
 
 	return Config{
 		DatabaseDSN:                    normalizeConnectionString(conn),
-		MigrationsDir:                  filepath.Join("src", "migrations"),
+		DBMaxOpenConns:                 dbMaxOpenConns,
+		DBMaxIdleConns:                 dbMaxIdleConns,
 		ChannelID:                      channelID,
 		ChannelKey:                     channelKey,
 		GreyBankCode:                   greyBankCode,
@@ -138,6 +152,23 @@ func Load() (Config, error) {
 		ExternalEURGLAccountNumber:     externalEURGLAccountNumber,
 		ExternalNGNGLAccountNumber:     externalNGNGLAccountNumber,
 	}, nil
+}
+
+func parseIntEnv(key string, fallback string) (int, error) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		raw = fallback
+	}
+
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s: %w", key, err)
+	}
+	if value < 1 {
+		return 0, fmt.Errorf("%s must be at least 1", key)
+	}
+
+	return value, nil
 }
 
 func parseDecimalEnv(key string, fallback string) (decimal.Decimal, error) {
@@ -158,6 +189,11 @@ func parseDecimalEnv(key string, fallback string) (decimal.Decimal, error) {
 }
 
 func normalizeConnectionString(raw string) string {
+	// URL-form DSNs are already valid for lib/pq; rewriting them would lowercase the password.
+	if strings.HasPrefix(raw, "postgres://") || strings.HasPrefix(raw, "postgresql://") {
+		return raw
+	}
+
 	// URL-form DSNs are already valid for lib/pq; rewriting them would lowercase the password.
 	if strings.HasPrefix(raw, "postgres://") || strings.HasPrefix(raw, "postgresql://") {
 		return raw

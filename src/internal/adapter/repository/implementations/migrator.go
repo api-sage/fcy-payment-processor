@@ -4,15 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"os"
-	"path/filepath"
+	"io/fs"
 	"sort"
 	"strings"
 
 	_ "github.com/lib/pq"
 )
 
-func RunMigrations(ctx context.Context, dsn, migrationsDir string) error {
+func RunMigrations(ctx context.Context, dsn string, migrations fs.FS) error {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return fmt.Errorf("open postgres connection: %w", err)
@@ -27,7 +26,7 @@ func RunMigrations(ctx context.Context, dsn, migrationsDir string) error {
 		return err
 	}
 
-	files, err := migrationFiles(migrationsDir)
+	files, err := migrationFiles(migrations)
 	if err != nil {
 		return err
 	}
@@ -41,8 +40,7 @@ func RunMigrations(ctx context.Context, dsn, migrationsDir string) error {
 			continue
 		}
 
-		path := filepath.Join(migrationsDir, file)
-		sqlBytes, err := os.ReadFile(path)
+		sqlBytes, err := fs.ReadFile(migrations, file)
 		if err != nil {
 			return fmt.Errorf("read migration %q: %w", file, err)
 		}
@@ -84,10 +82,10 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 	return nil
 }
 
-func migrationFiles(migrationsDir string) ([]string, error) {
-	entries, err := os.ReadDir(migrationsDir)
+func migrationFiles(migrations fs.FS) ([]string, error) {
+	entries, err := fs.ReadDir(migrations, ".")
 	if err != nil {
-		return nil, fmt.Errorf("read migrations directory %q: %w", migrationsDir, err)
+		return nil, fmt.Errorf("read migrations: %w", err)
 	}
 
 	files := make([]string, 0, len(entries))
